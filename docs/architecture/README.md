@@ -25,4 +25,4 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 
 - [Configured manual plan approval](manual-plan-approval.md) — human OAuth2 authority, immutable pins and transactional approval/invalidation (#46).
 
-- [Deployment operating contract](../requirements/control-plane-deployment.md) — proposed single-host boundary, serialized maintenance and preservation requirements; hosting is not provisioned.
+- [Deployment operating contract](../requirements/control-plane-deployment.md) — proposed single-host boundary, serialized maintenance and preservation requirements; existing PostgreSQL/Caddy selected; application hosting is not provisioned.

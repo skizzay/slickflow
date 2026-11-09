@@ -3,8 +3,9 @@
 Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
 [target story #109](https://github.com/skizzay/slickflow/issues/109).
 This is a proposed operating contract, not evidence of a deployed environment.
-Host inventory, access, cost and deployment authorization remain pending owner
-confirmation. No host has been inspected or provisioned by this story.
+The owner has selected the existing Pi, PostgreSQL service and Caddy, and
+approved a provisional runtime memory budget. Remaining inventory, access, cost
+and deployment authorization decisions are pending. No host has been inspected or provisioned by this story.
 
 ## Baseline and integration
 
@@ -30,17 +31,26 @@ publishing its sensitive details.
 
 | Decision | Proposal | Approval / verification |
 |---|---|---|
-| Host | Existing Raspberry Pi | Pending owner confirmation; no access attempted |
+| Host | Existing Raspberry Pi | Owner confirmed; no access attempted |
 | OS and CPU | Supported Linux; build for the measured CPU architecture | Unknown; verify OS version, CPU and 64-bit userspace before choosing images |
-| Capacity | One control plane and private PostgreSQL; no workers | RAM, available disk, storage medium and capacity budget unverified |
-| Persistence | Dedicated persistent database volume on reliable storage | Device, free-space threshold, restart behavior and backup destination pending |
+| Capacity | One runtime container limited to 1 GiB, with `-Xmx512m`; no workers | Owner approved provisional RAM allocation; current usage and headroom unmeasured |
+| Persistence | Dedicated SlickFlow database on the existing PostgreSQL service; separate DDL/DML roles | Existing service owner confirmed; database/roles still need creation; version, storage, access and backups unverified |
 | Access | Owner-authorized maintenance and deployment identities | Method, permissions and network route pending; never publish credentials |
 | Packaging | Docker Compose on one host; no Kubernetes | Proposed; confirm Docker/Compose availability and host support |
 | Registry | GHCR with commit-linked immutable digests | Proposed; visibility, access and retention pending |
-| HTTPS | Reverse proxy with verified certificate and rate limiting | DNS ownership, inbound route, certificate renewal and proxy choice pending |
+| HTTPS | Reuse existing Caddy for TLS and reverse proxying | Existing Caddy owner confirmed; route/DNS, renewal, access and rate-limit enforcement unverified |
 | Secrets | Deployment secret store, injected at runtime/maintenance | Store, owner, rotation and recovery access pending |
 | Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment name, approvers, repository-plan support and runner placement pending |
 | Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
+
+The owner reports roughly 3 GB of RAM freed on the Pi by retiring an existing
+service. This supports the provisional allocation but is not an independent
+measurement of current available RAM. The 1 GiB limit includes the JVM heap and
+non-heap overhead; the 512 MiB heap is not an additional allocation. Existing
+PostgreSQL, Caddy and the OS have separate memory needs. No new database or proxy
+container is planned. Migration memory remains to be measured and budgeted for
+the serialized maintenance step. Validate startup and representative webhook
+traffic before describing this allocation as a verified requirement.
 
 Before #109 is complete, the owner must approve this record and an authorized
 operator must verify the actual host inventory. Record inspection date, sanitized
@@ -52,8 +62,10 @@ select an equivalent explicit human gate before implementing deployment.
 
 ## Bounded deployment requirements
 
-Only the existing modular Spring Boot/Flowable runtime and PostgreSQL are in
-scope. Enable signed webhook ingestion and asynchronous classification; expose
+Only the existing modular Spring Boot/Flowable runtime and a dedicated database
+on the existing PostgreSQL service are in scope. Reuse existing Caddy for ingress;
+a second proxy is not planned. Rate-limit enforcement must be verified before
+public exposure. Enable signed webhook ingestion and asynchronous classification; expose
 status-only health. Explicitly keep `slickflow.execution.enabled`,
 `slickflow.execution.inbox.enabled`, `slickflow.manual-approval.enabled` and
 `slickflow.worker.enabled` false. No worker, execution container, GitHub write,
@@ -64,7 +76,8 @@ Publish matching runtime and migration executables from the same tested commit,
 with artifact digests and pipeline-run provenance. Verify with real PostgreSQL
 before publication; select the target image platform only after inventory.
 Deploy only the approved source commit/artifacts, never a floating tag. Limit
-initial operation to one runtime and one database; approve numeric CPU, memory,
+initial operation to one runtime and one dedicated database. The provisional
+runtime memory budget above is approved; approve remaining CPU, migration-memory,
 disk, backup retention and ingress-rate budgets before provisioning. Exceeding a
 budget or requiring a paid resource holds deployment for an owner decision.
 
