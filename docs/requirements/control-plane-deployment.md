@@ -4,7 +4,7 @@ Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
 [target story #109](https://github.com/skizzay/slickflow/issues/109).
 This is a proposed operating contract, not evidence of a deployed environment.
 The owner has selected the existing Pi, PostgreSQL service and Caddy, and
-approved a provisional runtime memory budget. Remaining inventory, access, cost
+approved a provisional runtime memory budget; enforcement is not yet available. Remaining inventory, access, cost
 and deployment authorization decisions are pending. No host has been inspected or provisioned by this story.
 
 ## Baseline and integration
@@ -31,26 +31,52 @@ publishing its sensitive details.
 
 | Decision | Proposal | Approval / verification |
 |---|---|---|
-| Host | Existing Raspberry Pi | Owner confirmed; no access attempted |
-| OS and CPU | Supported Linux; build for the measured CPU architecture | Unknown; verify OS version, CPU and 64-bit userspace before choosing images |
-| Capacity | One runtime container limited to 1 GiB, with `-Xmx512m`; no workers | Owner approved provisional RAM allocation; current usage and headroom unmeasured |
-| Persistence | Dedicated SlickFlow database on the existing PostgreSQL service; separate DDL/DML roles | Existing service owner confirmed; database/roles still need creation; version, storage, access and backups unverified |
-| Access | Owner-authorized maintenance and deployment identities | Method, permissions and network route pending; never publish credentials |
-| Packaging | Docker Compose on one host; no Kubernetes | Proposed; confirm Docker/Compose availability and host support |
+| Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Owner inventory dated November 6–8, 2026; Pi model undocumented; fresh version/userspace checks pending |
+| Database host | Shared PostgreSQL 16.15 on separate Ubuntu Server 26.10 / x86-64 host | Selected remote service per owner inventory; SlickFlow database, schemas and DDL/DML roles not provisioned |
+| Capacity | Provisional runtime budget of 1 GiB including a 512 MiB heap (`-Xmx512m`); no workers | Owner approved budget; November 7 inspection found Docker/kernel memory-limit enforcement unavailable and Docker stats zero; headroom unmeasured |
+| Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | SlickFlow storage, access restrictions and backup coverage unverified |
+| Access | Existing local SSH administration; dedicated deployment/maintenance identities pending | Dated owner inventory verifies administration only; existing application-specific database TLS/HBA permissions do not authorize SlickFlow |
+| Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; fresh versions and runtime support checks pending |
 | Registry | GHCR with commit-linked immutable digests | Proposed; visibility, access and retention pending |
-| HTTPS | Reuse existing Caddy for TLS and reverse proxying | Existing Caddy owner confirmed; route/DNS, renewal, access and rate-limit enforcement unverified |
-| Secrets | Deployment secret store, injected at runtime/maintenance | Store, owner, rotation and recovery access pending |
+| Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
+| DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
+| Secrets | Existing OpenBao 2.7.2 available on database host | Initialized/operational with admin login and isolated recovery verified November 2; SlickFlow selection/integration, policies and machine credentials pending |
 | Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment name, approvers, repository-plan support and runner placement pending |
 | Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
 
-The owner reports roughly 3 GB of RAM freed on the Pi by retiring an existing
-service. This supports the provisional allocation but is not an independent
-measurement of current available RAM. The 1 GiB limit includes the JVM heap and
-non-heap overhead; the 512 MiB heap is not an additional allocation. Existing
-PostgreSQL, Caddy and the OS have separate memory needs. No new database or proxy
-container is planned. Migration memory remains to be measured and budgeted for
-the serialized maintenance step. Validate startup and representative webhook
-traffic before describing this allocation as a verified requirement.
+Inventory source: [owner review on PR #116](https://github.com/skizzay/slickflow/pull/116#issuecomment-6754501694),
+using private operational records dated November 6–8, 2026, and OpenBao verification
+dated November 2. These are dated observations, not a fresh SSH inspection or
+provisioning/deployment authorization. Private hostnames and access details are
+intentionally omitted.
+
+The deployment spans two hosts. The Pi's retained PostgreSQL 17 instance is for
+retired-service data/rollback and is not the selected SlickFlow database. Shared
+PostgreSQL memory/storage belong to the remote host, outside the Pi allocation.
+Existing tenants must remain isolated; provision SlickFlow-specific database,
+schemas, DDL/DML roles and source/HBA restrictions. Existing Forgejo TLS access
+and successful database/files backup/isolated restore do not verify SlickFlow
+connectivity or backup coverage. Recurring/off-site backup policy is outstanding.
+The development/test baseline uses PostgreSQL 17.11; compatibility with selected
+16.15 must be verified by real PostgreSQL migration/runtime tests before deployment.
+Do not infer compatibility or replace the shared database version silently.
+
+The owner reports roughly 3 GB freed on the Pi by retiring an existing service;
+fresh headroom measurement is still required. The approved 1 GiB budget includes
+heap and native overhead. It is not an enforceable container limit today: verify
+memory-cgroup support or obtain approval for an alternative before relying on
+containment. `-Xmx512m` caps only heap. Caddy, the tunnel and OS have separate Pi
+memory needs. Migration memory remains to be measured and budgeted for serialized
+maintenance. Validate startup and representative webhook traffic before claiming
+a measured requirement; zero Docker stats is not evidence of zero memory usage.
+
+Reuse specifically the Pi Caddy, not the separate database-host Caddy used for
+private Authentik/OpenBao HTTPS. Proposed ingress is Cloudflare Tunnel → Pi Caddy
+→ runtime. Verify/select the exact public route and origin access/transport,
+certificate ownership/renewal and rate-limit enforcement before exposure. Existing
+Pi Caddy does not establish public TLS ownership. No second proxy is planned.
+Pi access to OpenBao must be established independently of database access;
+SlickFlow policies, machine authentication, rotation and recovery are unprovisioned.
 
 Before #109 is complete, the owner must approve this record and an authorized
 operator must verify the actual host inventory. Record inspection date, sanitized
@@ -63,7 +89,8 @@ select an equivalent explicit human gate before implementing deployment.
 ## Bounded deployment requirements
 
 Only the existing modular Spring Boot/Flowable runtime and a dedicated database
-on the existing PostgreSQL service are in scope. Reuse existing Caddy for ingress;
+on the selected remote PostgreSQL 16.15 service are in scope. Reuse Pi Caddy
+behind the existing Cloudflare Tunnel as the proposed ingress path;
 a second proxy is not planned. Rate-limit enforcement must be verified before
 public exposure. Enable signed webhook ingestion and asynchronous classification; expose
 status-only health. Explicitly keep `slickflow.execution.enabled`,
@@ -76,7 +103,7 @@ Publish matching runtime and migration executables from the same tested commit,
 with artifact digests and pipeline-run provenance. Verify with real PostgreSQL
 before publication; select the target image platform only after inventory.
 Deploy only the approved source commit/artifacts, never a floating tag. Limit
-initial operation to one runtime and one dedicated database. The provisional
+initial operation to one runtime on the Pi and one dedicated remote database. The provisional
 runtime memory budget above is approved; approve remaining CPU, migration-memory,
 disk, backup retention and ingress-rate budgets before provisioning. Exceeding a
 budget or requiring a paid resource holds deployment for an owner decision.

@@ -12,4 +12,4 @@ Planned topics: installation, connecting a repository, approving work, following
 
 - [Manual plan approval](manual-plan-approval.md) — configure one epic/story pair, issue approval/invalidation commands and understand internal parent preparation.
 
-- [Deployment planning prerequisites](../requirements/control-plane-deployment.md) — confirmed target/service choices, provisional runtime RAM and remaining decisions/host verification before deployment; not an executable deployment runbook.
+- [Deployment planning prerequisites](../requirements/control-plane-deployment.md) — dated two-host inventory, provisional runtime RAM budget and unresolved enforcement and remaining decisions/host verification before deployment; not an executable deployment runbook.
