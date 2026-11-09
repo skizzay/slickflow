@@ -44,3 +44,15 @@ validation; #11 owns the actual approved-issue-to-PR demonstration; #15 owns rea
 GitHub reconciliation. Milestone 1 is not complete. No new generic Flowable POC
 is required; use the existing evidence while implementing and testing those stories.
 Research acceptance does not waive human epic approval or implementation merge gates.
+
+## Initial live operations — #108
+
+Prioritize the bounded [control-plane deployment contract](control-plane-deployment.md)
+under [#108](https://github.com/skizzay/slickflow/issues/108): confirm target and
+operating decisions (#109), package runtime/migrator (#110), provision private
+persistence/hosting (#111), verify/publish artifacts (#112), approved deployment
+(#113), HTTPS ingress (#114), then live receipt/restart evidence (#115).
+Target confirmation and actual deployment remain pending. This path uses the
+merged bootstrap/inbox baseline and does not require worker execution or the full
+Execution epic. Live webhook classification alone does not complete Milestone 1
+or authorize issue-to-PR automation.

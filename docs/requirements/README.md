@@ -10,3 +10,5 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 - [Single-worker protocol v1](worker-protocol.md) — proposed message and lease contract (#37), with implemented Boot-configured OAuth2 authentication boundary (#38).
 
 - [Manual plan approval contract](../architecture/manual-plan-approval.md) — implemented single-pair approval/invalidation boundary (#46), without dispatch.
+
+- [Initial control-plane deployment](control-plane-deployment.md) — proposed target inventory, operating decisions and delivery gates (#108/#109); owner confirmation and host verification pending.
