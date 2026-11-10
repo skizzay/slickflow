@@ -9,15 +9,18 @@ case "$(docker info --format '{{.Architecture}}')" in
   aarch64|arm64) builder_platform=linux/arm64 ;;
   *) echo 'Unsupported builder architecture' >&2; exit 1 ;;
 esac
+docker buildx version >/dev/null
+source_epoch=$(git show -s --format=%ct "$revision")
 context=$(mktemp -d)
 trap 'rm -rf "$context"' EXIT
 # Only committed source enters the build: no working-tree secrets or local JARs.
 git archive "$revision" | tar -x -C "$context"
 suffix=${platform#linux/}
 for target in migration runtime; do
-  docker build --platform "$platform" --target "$target" \
+  docker buildx build --load --platform "$platform" --target "$target" \
     --build-arg "BUILD_PLATFORM=$builder_platform" \
     --build-arg "SOURCE_REVISION=$revision" \
+    --build-arg "SOURCE_DATE_EPOCH=$source_epoch" \
     -f "$context/packaging/control-plane/Dockerfile" \
     -t "slickflow-$target:$revision-$suffix" "$context"
   # Local content IDs are immutable. Registry manifest digests are added by #112.
