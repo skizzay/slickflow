@@ -198,3 +198,11 @@ written contract only; they do not establish host readiness. Operational runbook
 for deploy, inspection, redelivery, restart, backup/restore, ingress shutdown,
 rotation and recovery must accompany their implementing stories. This milestone
 proves receipt/classification, not Milestone 1 issue-to-PR automation.
+
+## Implemented packaging boundary
+
+[#110](https://github.com/skizzay/slickflow/issues/110) supplies matching JRE-only
+runtime/migration images from one archived source revision, pinned base digests,
+non-root identities and a disposable PostgreSQL 18.6 image smoke check. See
+[build/run and verification instructions](../user-guide/control-plane-packaging.md).
+Packaging does not publish artifacts, provision services or authorize deployment.

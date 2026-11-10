@@ -6,7 +6,7 @@ COPY pom.xml ./
 COPY control-plane/pom.xml control-plane/pom.xml
 COPY control-plane/src control-plane/src
 ARG SOURCE_DATE_EPOCH
-RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests -Dproject.build.outputTimestamp=${SOURCE_DATE_EPOCH} package
+RUN --mount=type=cache,target=/root/.m2 mvn -B -Dmaven.resolver.transport=wagon -DskipTests -Dproject.build.outputTimestamp=${SOURCE_DATE_EPOCH} package
 
 FROM eclipse-temurin:21-jre-noble@sha256:0eda5830ed7b669abc246a8dc520ea8a23cab06f9a8d4b6964109e2f2394e46f AS base
 ARG SOURCE_REVISION
