@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${SLICKFLOW_RUNTIME_IMAGE:?set immutable runtime image ID}"
 : "${SLICKFLOW_MIGRATION_IMAGE:?set immutable migration image ID}"
+for image in "$SLICKFLOW_RUNTIME_IMAGE" "$SLICKFLOW_MIGRATION_IMAGE"; do
+  [[ "$image" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "Use immutable local image IDs" >&2; exit 1; }
+done
 export SLICKFLOW_RUNTIME_IMAGE SLICKFLOW_MIGRATION_IMAGE
 export SLICKFLOW_TEST_PASSWORD
 SLICKFLOW_TEST_PASSWORD=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
@@ -15,6 +18,7 @@ migration_revision=$(docker image inspect "$SLICKFLOW_MIGRATION_IMAGE" --format 
 [[ "$runtime_revision" =~ ^[0-9a-f]{40}$ && "$runtime_revision" == "$migration_revision" ]]
 for image in "$SLICKFLOW_RUNTIME_IMAGE" "$SLICKFLOW_MIGRATION_IMAGE"; do
   [[ $(docker image inspect "$image" --format '{{.Config.User}}') == 10001:10001 ]]
+  docker run --rm --entrypoint sh "$image" -c 'test ! -e /build && ! command -v mvn && ! command -v javac'
 done
 "${compose[@]}" up -d --wait db
 "${compose[@]}" run --rm migration
