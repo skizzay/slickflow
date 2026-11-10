@@ -24,3 +24,5 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 - [Flowable and provider boundaries](workflow-boundaries.md) — target event-driven orchestration, independent ticket/repository inputs, review/remediation/merge loop and worker boundaries; includes implementation-status distinctions. Approved workflow registration and startup are described in [control-plane persistence](control-plane-persistence.md).
 
 - [Configured manual plan approval](manual-plan-approval.md) — human OAuth2 authority, immutable pins and transactional approval/invalidation (#46).
+
+- [Deployment operating contract](../requirements/control-plane-deployment.md) — proposed two-host boundary, serialized maintenance and preservation requirements; remote PostgreSQL 18.6 (existing-service upgrade/recovery verified) and Pi Caddy behind Cloudflare Tunnel selected/proposed; application hosting is not provisioned.
