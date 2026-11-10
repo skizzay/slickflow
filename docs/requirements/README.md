@@ -11,4 +11,4 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 
 - [Manual plan approval contract](../architecture/manual-plan-approval.md) — implemented single-pair approval/invalidation boundary (#46), without dispatch.
 
-- [Initial control-plane deployment](control-plane-deployment.md) — proposed target inventory, operating decisions and delivery gates (#108/#109); dated Pi/remote-service inventory and provisional RAM budget recorded; memory enforcement unresolved; remaining decisions and host verification pending.
+- [Initial control-plane deployment](control-plane-deployment.md) — proposed target inventory, operating decisions and delivery gates (#108/#109); dated Pi/remote-service inventory, completed shared PostgreSQL 18.6 upgrade and provisional RAM budget recorded; memory enforcement unresolved; remaining decisions and host verification pending.
