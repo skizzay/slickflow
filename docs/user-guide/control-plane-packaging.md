@@ -64,10 +64,18 @@ COMPOSE_FILE=compose.yaml:packaging/control-plane/compose.regression18.yaml \
 
 Smoke verification creates a unique disposable Compose project with PostgreSQL
 18.6, random temporary credentials and a volume mounted at `/var/lib/postgresql`
-(the PostgreSQL 18 image layout). It runs migration twice, grants a separate
+with default PGDATA `/var/lib/postgresql/18/docker`, as documented by the
+[official PostgreSQL image](https://hub.docker.com/_/postgres#pgdata). The script
+asserts this actual database directory. The PostgreSQL 17 development fixture
+uses `/var/lib/postgresql/data`; the explicit 18 regression override retains that
+path only for a fresh disposable fixture. These layouts are intentionally distinct.
+The smoke check runs migration twice, grants a separate
 DML-only runtime identity, starts the runtime with a read-only root and writable
 `/tmp`, verifies status-only health and denied unrelated routes, and confirms
-runtime cannot create domain tables. Both images must have matching revision
+the intended runtime database user can connect/read and receives specifically
+insufficient-privilege when attempting domain DDL. Connection failures and other
+SQL errors fail verification. Revision-label and non-root identity failures emit
+explicit diagnostics. Both images must have matching revision
 labels and non-root identities. Cleanup removes only this project's containers
 and volume. No Docker socket, source checkout or build-tool volume is mounted.
 The runtime port is published on a randomly selected host-loopback port only.

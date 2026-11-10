@@ -12,6 +12,8 @@ services:
       timeout: 3s
       retries: 60
     volumes:
+      # PostgreSQL 18 defaults PGDATA to /var/lib/postgresql/18/docker.
+      # Mount its declared parent volume, unlike the PostgreSQL 17 dev fixture.
       - database:/var/lib/postgresql
   migration:
     image: ${SLICKFLOW_MIGRATION_IMAGE:?required}

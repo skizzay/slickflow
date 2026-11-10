@@ -15,12 +15,24 @@ cleanup() { "${compose[@]}" down --volumes --remove-orphans >/dev/null; }
 trap cleanup EXIT
 runtime_revision=$(docker image inspect "$SLICKFLOW_RUNTIME_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
 migration_revision=$(docker image inspect "$SLICKFLOW_MIGRATION_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
-[[ "$runtime_revision" =~ ^[0-9a-f]{40}$ && "$runtime_revision" == "$migration_revision" ]]
+if [[ ! "$runtime_revision" =~ ^[0-9a-f]{40}$ || "$runtime_revision" != "$migration_revision" ]]; then
+  echo "Image revision labels must match and contain a full 40-character commit SHA" >&2
+  exit 1
+fi
 for image in "$SLICKFLOW_RUNTIME_IMAGE" "$SLICKFLOW_MIGRATION_IMAGE"; do
-  [[ $(docker image inspect "$image" --format '{{.Config.User}}') == 10001:10001 ]]
+  if [[ $(docker image inspect "$image" --format '{{.Config.User}}') != 10001:10001 ]]; then
+    echo "Both images must run as UID/GID 10001:10001" >&2
+    exit 1
+  fi
   docker run --rm --entrypoint sh "$image" -c 'test ! -e /build && ! command -v mvn && ! command -v javac'
 done
 "${compose[@]}" up -d --wait db
+# PostgreSQL 18 uses a versioned directory within the declared parent volume.
+data_directory=$("${compose[@]}" exec -T db psql -At -U migrator -d slickflow -c 'SHOW data_directory')
+if [[ "$data_directory" != /var/lib/postgresql/18/docker ]]; then
+  echo "Unexpected PostgreSQL 18 data directory for the pinned smoke fixture" >&2
+  exit 1
+fi
 "${compose[@]}" run --rm migration
 # A second run must validate/no-op without destructive repair.
 "${compose[@]}" run --rm migration
@@ -42,12 +54,28 @@ for ((attempt=0; attempt<120; attempt++)); do
   sleep 1
 done
 [[ "$healthy" == true ]]
-# Runtime identity must be unable to create domain tables.
-if "${compose[@]}" exec -T -e PGPASSWORD="$SLICKFLOW_TEST_PASSWORD" db \
-  psql -h 127.0.0.1 -U runtime -d slickflow -v ON_ERROR_STOP=1 \
-  -c 'CREATE TABLE slickflow.forbidden_fixture(id integer)' >/dev/null 2>&1; then
-  echo 'Runtime role unexpectedly has DDL access' >&2; exit 1
+# Confirm successful connection/read as the intended role before testing denial.
+runtime_psql() {
+  PGPASSWORD="$SLICKFLOW_TEST_PASSWORD" "${compose[@]}" exec -T -e PGPASSWORD db \
+    psql -h 127.0.0.1 -U runtime -d slickflow -v ON_ERROR_STOP=1 "$@"
+}
+runtime_identity=$(runtime_psql -At -c 'SELECT current_user')
+if [[ "$runtime_identity" != runtime ]]; then
+  echo "Permission checks must connect as the runtime database role" >&2
+  exit 1
 fi
+runtime_psql -c 'SELECT count(*) FROM slickflow.repository' >/dev/null
+# Catch only permission denial. Connection failures or unrelated SQL errors fail.
+runtime_psql >/dev/null <<'SQL'
+DO $$
+BEGIN
+  CREATE TABLE slickflow.forbidden_fixture(id integer);
+  RAISE EXCEPTION 'Runtime role unexpectedly has DDL access';
+EXCEPTION WHEN insufficient_privilege THEN
+  NULL;
+END
+$$;
+SQL
 status=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://$port/not-exposed")
 [[ "$status" == 401 || "$status" == 403 ]]
 echo "PASS: migration, replay, DML-only runtime health and route denial ($runtime_revision)"
