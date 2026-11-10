@@ -17,6 +17,12 @@ bootstrap. PostgreSQL remains on the research major with current maintenance fix
 Compatibility is tested here; these pins do not establish Pi capacity, legal
 clearance or a complete security/deployment review. Re-evaluate patches before deployment.
 
+The development PostgreSQL default remains 17.11. The #110 packaging work also
+verifies all 90 existing tests and full Maven verify/package against disposable
+PostgreSQL 18.6 on amd64. Packaged migration/replay and DML-only runtime health
+pass on 18.6. See [packaging verification](../user-guide/control-plane-packaging.md)
+for reproduction and ARM64/production-connectivity limits.
+
 Sources checked for this implementation:
 [Flowable 8 release](https://github.com/flowable/flowable-engine/releases/tag/flowable-8.0.0),
 [Boot 4.0 requirements](https://docs.spring.io/spring-boot/4.0/system-requirements.html),

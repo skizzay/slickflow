@@ -57,6 +57,9 @@ export SLICKFLOW_MIGRATION_IMAGE=$(docker image inspect \
   "slickflow-migration:$revision-$arch" --format '{{.Id}}')
 ./scripts/verify-packaging.sh
 ./scripts/verify-bootstrap.sh
+# Full suite against the selected production database version, in a NEW project.
+COMPOSE_FILE=compose.yaml:packaging/control-plane/compose.regression18.yaml \
+  ./scripts/verify-bootstrap.sh
 ```
 
 Smoke verification creates a unique disposable Compose project with PostgreSQL
@@ -68,9 +71,11 @@ runtime cannot create domain tables. Both images must have matching revision
 labels and non-root identities. Cleanup removes only this project's containers
 and volume. No Docker socket, source checkout or build-tool volume is mounted.
 The runtime port is published on a randomly selected host-loopback port only.
-The regular integration/architecture suite remains on the development 17.11
-baseline; the image smoke check targets production-major 18.6. A full integration
-suite on 18.6 remains a separate compatibility gate until recorded as verified.
+The regular integration/architecture suite defaults to the development 17.11
+baseline; the explicit override above runs the same suite on 18.6. It sets PGDATA
+to the development volume target for its fresh disposable fixture only; it does
+not upgrade an existing volume. The packaging smoke check uses the normal 18
+image volume layout. Review both PostgreSQL digest pins together when updating.
 These tests do not establish production TLS/HBA access or live webhook evidence.
 
 ## Run with external configuration
@@ -114,3 +119,18 @@ alternative before relying on a container limit. Migration memory is not yet
 profiled. Migration failures block runtime startup; no startup DDL, schema repair,
 clean, automatic rollback or data deletion is introduced. Follow the deployment
 contract's preservation and approval gates before using a persistent database.
+
+## Verified scope
+
+For #110, ARM64 and amd64 image builds passed. On amd64, packaged migration
+(including replay), DML-only runtime health, rejected DDL, unrelated-route denial
+and JRE-only/non-root image checks passed against disposable PostgreSQL 18.6.
+All 90 integration/unit/architecture tests passed on both 17.11 and 18.6; the
+18.6 full Maven verify/package run completed successfully. The 17.11 run's final
+packaging step encountered a plugin-download failure after all tests passed;
+packaging was independently verified by the image builds and 18.6 verify run.
+Maven transfer stalls required a temporary local cache and alternate HTTP
+transport for test execution; these overrides are not deployment configuration.
+ARM64 execution was not verified: this amd64 host lacks ARM emulation and reports
+an exec-format error. Repeat the image smoke check natively on ARM64 before
+deployment. No Pi/shared-database access, live TLS or load verification is claimed.

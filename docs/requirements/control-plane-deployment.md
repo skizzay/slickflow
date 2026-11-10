@@ -61,11 +61,12 @@ Existing tenants must remain isolated; provision SlickFlow-specific database,
 schemas, DDL/DML roles and source/HBA restrictions. Existing Forgejo TLS access
 and successful database/files backup/isolated restore do not verify SlickFlow
 connectivity or backup coverage. Recurring/off-site backup policy is outstanding.
-The development/test baseline remains PostgreSQL 17.11; compatibility with the
-selected production PostgreSQL 18.6 must be verified by real SlickFlow
-migration/runtime tests before deployment. Existing-tenant acceptance does not
-establish SlickFlow compatibility. Do not silently change test pins or the shared
-database version.
+The development/test default remains PostgreSQL 17.11. Under #110, all 90
+SlickFlow tests and full Maven verify/package passed against disposable PostgreSQL
+18.6 on amd64, plus packaged migration/replay and DML-only runtime health. This
+verifies local compatibility, not production TLS/HBA authorization or ARM64
+execution. Native ARM64 image smoke checks remain required before deployment.
+Do not silently change test pins or the shared database version.
 
 The owner reports roughly 3 GB freed on the Pi by retiring an existing service;
 November 9 inspection found about 7.1 GiB available RAM and 98 GiB free storage
