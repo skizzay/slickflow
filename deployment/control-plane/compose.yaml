@@ -55,6 +55,7 @@ services:
     environment:
       SLICKFLOW_DB_URL: ${SLICKFLOW_DB_URL:?hostname-verified TLS JDBC URL required}
       SLICKFLOW_DB_USER: slickflow_migrator
+      SLICKFLOW_DB_RUNTIME_ROLE: slickflow_runtime
       SLICKFLOW_ENGINE_SCHEMA: flowable
     entrypoint: [/bin/sh, -ec]
     command:

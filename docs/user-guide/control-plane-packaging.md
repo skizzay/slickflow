@@ -113,7 +113,10 @@ docker run --rm --read-only --tmpfs /tmp --cap-drop ALL \
 ```
 
 Runtime accepts external Spring YAML; the migration executable reads environment
-variables only. Both use the same database URL with dedicated `currentSchema`
+variables only. To have it apply deployment runtime grants, also pass
+`SLICKFLOW_DB_RUNTIME_ROLE` naming an already-created unprivileged runtime role;
+the [hosting recipe](control-plane-hosting.md) configures this explicitly. Without
+it, no deployment-role grants are applied. Both use the same database URL with dedicated `currentSchema`
 and matching engine schema; see [persistence](../architecture/control-plane-persistence.md).
 Configure hostname-verified database TLS and its trust material privately. The
 container binds HTTP to all container interfaces so host-loopback publication can

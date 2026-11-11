@@ -29,4 +29,4 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 
 - [Control-plane packaging](../user-guide/control-plane-packaging.md) — JRE-only runtime/migration image boundary and committed-source provenance (#110).
 
-- [Private hosting and recovery](../user-guide/control-plane-hosting.md) — scoped DDL/DML identities, remote persistence and restart/backup boundaries (#111).
+- [Private hosting and recovery](../user-guide/control-plane-hosting.md) — scoped DDL/DML identities, migrator-owned schemas and post-migration grants, remote persistence and restart/backup boundaries (#111).

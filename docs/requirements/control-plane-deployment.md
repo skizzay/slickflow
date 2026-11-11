@@ -211,7 +211,8 @@ Packaging does not publish artifacts, provision services or authorize deployment
 ## Hosting configuration boundary
 
 [#111](https://github.com/skizzay/slickflow/issues/111) supplies repeatable dedicated
-database/role bootstrap, remote-database Compose hosting, a read-only preflight
+database/role bootstrap (without schema creation), migrator-owned schemas and
+repeatable post-migration runtime grants, remote-database Compose hosting, a read-only preflight
 and private backup/isolated-restore tools. See the
 [hosting guide](../user-guide/control-plane-hosting.md). Read-only target inspection verified Pi SSH access, Debian 13/ARM64, Compose
 and Docker enabled at boot. It confirmed `cgroup_disable=memory` and absent

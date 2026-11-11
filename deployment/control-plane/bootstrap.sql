@@ -32,22 +32,7 @@ SELECT pg_advisory_xact_lock(111, 108);
 REVOKE ALL ON DATABASE slickflow FROM PUBLIC;
 GRANT CONNECT ON DATABASE slickflow TO slickflow_runtime;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-CREATE SCHEMA IF NOT EXISTS slickflow AUTHORIZATION slickflow_migrator;
-CREATE SCHEMA IF NOT EXISTS flowable AUTHORIZATION slickflow_migrator;
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_namespace n JOIN pg_roles r ON r.oid=n.nspowner
-      WHERE n.nspname IN ('slickflow','flowable') AND r.rolname<>'slickflow_migrator') THEN
-    RAISE EXCEPTION 'Unexpected schema owner; refusing adoption';
-  END IF;
-END $$;
-GRANT USAGE ON SCHEMA slickflow,flowable TO slickflow_runtime;
-GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA slickflow,flowable TO slickflow_runtime;
-GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA slickflow,flowable TO slickflow_runtime;
-ALTER DEFAULT PRIVILEGES FOR ROLE slickflow_migrator IN SCHEMA slickflow,flowable
-  GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO slickflow_runtime;
-ALTER DEFAULT PRIVILEGES FOR ROLE slickflow_migrator IN SCHEMA slickflow,flowable
-  GRANT USAGE,SELECT ON SEQUENCES TO slickflow_runtime;
+-- The migration executable creates/owns schemas and applies runtime grants.
 COMMIT;
 -- No login passwords, HBA edits, database resets or shared-service restart.
 -- Trusted operators provision login secrets separately through their secret store.

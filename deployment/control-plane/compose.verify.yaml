@@ -18,6 +18,7 @@ services:
     environment:
       SLICKFLOW_DB_URL: jdbc:postgresql://db:5432/slickflow?currentSchema=slickflow
       SLICKFLOW_DB_USER: slickflow_migrator
+      SLICKFLOW_DB_RUNTIME_ROLE: slickflow_runtime
       SLICKFLOW_DB_PASSWORD: ${SLICKFLOW_FIXTURE_PASSWORD:?required}
   runtime:
     image: ${SLICKFLOW_RUNTIME_IMAGE:?required}

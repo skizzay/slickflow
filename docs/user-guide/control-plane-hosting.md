@@ -15,8 +15,11 @@ created on the shared PostgreSQL 18.6 service using the tested bootstrap. Owner
 and role privilege flags were verified; passwords, application migrations and
 network authorization are not configured. Pi runtime provisioning, private
 network/TLS authorization, ARM64 runtime verification and a controlled host
-reboot remain unverified. The kernel command line explicitly disables the memory controller
-(`cgroup_disable=memory`), and Docker reports memory/swap limit support false.
+reboot persistence remains unverified. Subsequent read-only verification found
+the memory controller available, Docker memory/swap support enabled, and an
+existing container limit matching its cgroup. Active boot arguments contain both
+disable/enable memory flags while the saved configuration has only the enable
+flag; the administrator should reconcile that discrepancy.
 Database DNS resolution and SSH administration now succeed from the workstation;
 the Pi also resolves the database service. The earlier DNS failure is resolved.
 No boot configuration, running service or existing tenant data was changed. These instructions do not authorize
@@ -39,15 +42,27 @@ PGSERVICE=slickflow_admin psql -X -v ON_ERROR_STOP=1 \
 ```
 
 Bootstrap creates only dedicated `slickflow_migrator` and `slickflow_runtime`
-roles and the `slickflow` database with `slickflow`/`flowable` schemas. Roles start
-NOLOGIN and have no superuser, database-create, role-create, replication or
-row-security-bypass permissions. Migrator owns only the dedicated database and
-schemas; runtime has CONNECT, schema USAGE and table DML/sequence access, including
-default privileges for future migrator-owned objects. Public database privileges
-and public-schema access are revoked only within SlickFlow's database. Existing
-objects are validated: elevated roles, memberships or foreign ownership stop the
-script. Repetition does not reset data, rotate credentials or silently repair
-privilege drift. Bootstrap advisory locks serialize its own critical sections.
+roles and the `slickflow` database owned by the migrator. Roles start NOLOGIN
+and have no superuser, database-create, role-create, replication or row-security
+bypass permissions. It grants runtime CONNECT and restricts PUBLIC database and
+public-schema access only within this database. It creates no application schemas
+and grants no schema/table privileges. Repetition preserves data and credentials;
+unexpected elevated roles, memberships or database ownership stop bootstrap.
+
+The migration service sets `SLICKFLOW_DB_RUNTIME_ROLE=slickflow_runtime`. Flyway
+creates missing `slickflow`/`flowable` schemas under the migration identity, applies
+V1, and Flowable creates its engine objects. The standalone executable then grants
+runtime schema USAGE, table DML and sequence access in one permissions transaction.
+It also sets default privileges for future objects created by that same migration
+identity. This grant step repeats after every successful migration, including no-op
+migration runs; it is deployment setup outside V1, with no runtime startup DDL.
+Migration requires the configured runtime role to already exist, be distinct and
+unprivileged, and have no inherited roles or schema CREATE access. Existing schemas
+must be owned by the migration identity; mismatches fail instead of changing owners.
+Grant failure fails the migration executable and blocks runtime startup. Flyway,
+Flowable maintenance and the grant transaction are separate steps, not one atomic
+migration; serialized maintenance remains mandatory. Existing dedicated schemas
+already owned by the migrator need no drop/recreation.
 
 A trusted operator assigns separate generated login secrets through the approved
 secret process, for example interactive psql `\password` followed by enabling
@@ -99,9 +114,9 @@ variables are declared in the Compose file and checked by:
 
 Preflight is read-only: it never pulls images, changes kernel settings or starts
 services. It requires ARM64/non-root paired images, appropriate private secret
-files, TLS configuration and actual Docker memory-limit support. The known Pi
-memory-cgroup issue blocks this check until fixed or an alternative is explicitly
-approved and implemented; the 512 MiB heap is not whole-container containment.
+files, TLS configuration and actual Docker memory-limit support. Read-only verification confirms Pi memory-limit support is now available;
+preflight still checks it before use. The 512 MiB heap is not whole-container
+containment.
 
 After authorized maintenance, operations use the persistent project identity
 `slickflow-control-plane` with `deployment/control-plane/compose.yaml`. Runtime
@@ -194,7 +209,8 @@ export SLICKFLOW_RUNTIME_IMAGE SLICKFLOW_MIGRATION_IMAGE
 ```
 
 The unique local PostgreSQL 18.6 project uses synthetic data and temporary secrets.
-It exercises repeated bootstrap, scoped migration, mounted runtime secret loading,
+It exercises schema-free repeated bootstrap, repeated scoped migration with
+migrator-owned schemas and runtime grants (including future objects), mounted runtime secret loading,
 DML-only startup, role/database restrictions inside the test network, container recreation with
 persistent data, custom-format backup and isolated restore with exact fixture-row
 comparison, and refusal to overwrite production/nonempty targets. Fixture HBA

@@ -250,8 +250,16 @@ execution plane remains a separate Java controller and isolated job containers.
 ## Private hosting and recovery boundary
 
 The [#111 hosting recipe](../user-guide/control-plane-hosting.md) supplies scoped
-non-superuser migrator/runtime roles and default grants in a dedicated database
-on the existing remote service. Runtime has no schema CREATE grant; migration
+non-superuser migrator/runtime roles and a dedicated database on the existing
+remote service. Bootstrap creates the database/roles only; the standalone migrator
+creates and owns both schemas through Flyway, then applies runtime grants after
+Flowable maintenance when `SLICKFLOW_DB_RUNTIME_ROLE` is configured. This optional
+environment setting is an existing unprivileged PostgreSQL role identifier, not a
+Spring YAML property. Without it, the migrator retains its schema/table maintenance
+behavior and applies no deployment-role grants. Configured grants on existing
+tables/sequences and defaults for future migration-owned objects are applied in
+a repeatable transaction outside V1. Invalid roles or foreign schema ownership
+fail closed. This does not make Flyway, engine DDL and grants one transaction. Runtime has no schema CREATE grant; migration
 credentials remain separate. Database ACLs do not replace source/role/database HBA
 restrictions, private listeners/firewalls or hostname-verified TLS. Backups cover
 one database and preserve ACL/ownership metadata, not cluster roles or secrets.
