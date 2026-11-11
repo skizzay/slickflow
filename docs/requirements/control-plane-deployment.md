@@ -213,7 +213,10 @@ Packaging does not publish artifacts, provision services or authorize deployment
 [#111](https://github.com/skizzay/slickflow/issues/111) supplies repeatable dedicated
 database/role bootstrap, remote-database Compose hosting, a read-only preflight
 and private backup/isolated-restore tools. See the
-[hosting guide](../user-guide/control-plane-hosting.md). Actual target provisioning,
+[hosting guide](../user-guide/control-plane-hosting.md). Read-only target inspection verified Pi SSH access, Debian 13/ARM64, Compose
+and Docker enabled at boot. It confirmed `cgroup_disable=memory` and absent
+Docker memory-limit support; the supplied database service endpoint did not
+resolve from either the workstation or Pi. Actual target provisioning,
 network/TLS authorization, secret-store integration, memory enforcement and
 controlled host-reboot evidence remain pending; local tests do not satisfy those
 operational acceptance gates. No public ingress is added.

@@ -8,9 +8,15 @@ through [PR #117](https://github.com/skizzay/slickflow/pull/117).
 
 The repository supplies repeatable database bootstrap, a remote-database hosting
 Compose file, read-only host preflight and database backup/isolated-restore tools.
-Local disposable verification is implemented. Actual Pi/shared-database
-provisioning, private network/TLS authorization, ARM64 runtime verification and a
-controlled host reboot remain unverified. These instructions do not authorize
+Local disposable verification is implemented. Read-only Pi inspection verified
+SSH administration, Debian 13/ARM64, Docker startup enabled at boot, Compose,
+Python and flock. Actual Pi/shared-database provisioning, private network/TLS
+authorization, ARM64 runtime verification and a controlled host reboot remain
+unverified. The kernel command line explicitly disables the memory controller
+(`cgroup_disable=memory`), and Docker reports memory/swap limit support false.
+The supplied database service name did not resolve from the workstation or Pi;
+a working administration/service endpoint is still needed. No service, boot
+configuration or database was changed during inspection. These instructions do not authorize
 another application's interruption, secret-store changes or reinitialization.
 The [deployment contract](../requirements/control-plane-deployment.md) owns
 remaining access, cost, resource and deployment decisions. Keep PRs draft until
