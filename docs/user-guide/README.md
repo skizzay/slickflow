@@ -15,3 +15,5 @@ Planned topics: installation, connecting a repository, approving work, following
 - [Deployment planning prerequisites](../requirements/control-plane-deployment.md) — dated two-host inventory, provisional runtime RAM budget and unresolved enforcement and remaining decisions/host verification before deployment; not an executable deployment runbook.
 
 - [Control-plane packaging](control-plane-packaging.md) — matching non-root Java 21 runtime/migration images, immutable source identity and disposable PostgreSQL 18.6 smoke verification (#110).
+
+- [Private control-plane hosting](control-plane-hosting.md) — dedicated shared-database roles, migrator-owned schemas/runtime grants, external secrets, bounded Pi hosting and isolated recovery (#111); actual host verification pending.
