@@ -1,0 +1,83 @@
+# Remote PostgreSQL only: this file creates no database container or data volume.
+services:
+  runtime:
+    image: ${SLICKFLOW_RUNTIME_IMAGE:?immutable image required}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp:size=64m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: ${SLICKFLOW_CPU_LIMIT:?approved CPU budget required}
+    pids_limit: 256
+    environment:
+      SLICKFLOW_DB_URL: ${SLICKFLOW_DB_URL:?hostname-verified TLS JDBC URL required}
+      SLICKFLOW_DB_USER: slickflow_runtime
+      SLICKFLOW_ENGINE_SCHEMA: flowable
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+      JAVA_TOOL_OPTIONS: -Xmx512m
+      SLICKFLOW_GITHUB_WEBHOOK_ENABLED: 'false'
+      SLICKFLOW_WORKER_ENABLED: 'false'
+    command:
+      - --slickflow.execution.enabled=false
+      - --slickflow.execution.inbox.enabled=false
+      - --slickflow.manual-approval.enabled=false
+      - --slickflow.worker.enabled=false
+      - --slickflow.github.webhook.enabled=false
+    secrets:
+      - source: runtime_password
+        target: SLICKFLOW_DB_PASSWORD
+    volumes:
+      - type: bind
+        source: ${SLICKFLOW_DB_CA_FILE:?database CA required}
+        target: /run/trust/postgresql-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    ports: ['127.0.0.1:8080:8080']
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+  migration:
+    profiles: [maintenance]
+    image: ${SLICKFLOW_MIGRATION_IMAGE:?immutable image required}
+    restart: 'no'
+    read_only: true
+    tmpfs: [/tmp:size=64m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SLICKFLOW_MIGRATION_MEMORY:?approved migration budget required}
+    cpus: ${SLICKFLOW_CPU_LIMIT:?approved CPU budget required}
+    pids_limit: 256
+    environment:
+      SLICKFLOW_DB_URL: ${SLICKFLOW_DB_URL:?hostname-verified TLS JDBC URL required}
+      SLICKFLOW_DB_USER: slickflow_migrator
+      SLICKFLOW_ENGINE_SCHEMA: flowable
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        export SLICKFLOW_DB_PASSWORD="$$(cat /run/secrets/password)"
+        exec java -jar /app/migrate.jar
+    secrets:
+      - source: migration_password
+        target: password
+    volumes:
+      - type: bind
+        source: ${SLICKFLOW_DB_CA_FILE:?database CA required}
+        target: /run/trust/postgresql-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+secrets:
+  runtime_password:
+    file: ${SLICKFLOW_RUNTIME_PASSWORD_FILE:?external runtime secret required}
+  migration_password:
+    file: ${SLICKFLOW_MIGRATION_PASSWORD_FILE:?external migration secret required}

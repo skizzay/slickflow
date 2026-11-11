@@ -83,7 +83,8 @@ The regular integration/architecture suite defaults to the development 17.11
 baseline; the explicit override above runs the same suite on 18.6. It sets PGDATA
 to the development volume target for its fresh disposable fixture only; it does
 not upgrade an existing volume. The packaging smoke check uses the normal 18
-image volume layout. Review both PostgreSQL digest pins together when updating.
+image volume layout. Review the PostgreSQL digest pins in packaging and hosting fixtures together
+when updating.
 These tests do not establish production TLS/HBA access or live webhook evidence.
 
 ## Run with external configuration

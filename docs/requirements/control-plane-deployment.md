@@ -117,8 +117,8 @@ Pi Caddy does not establish public TLS ownership. No second proxy is planned.
 Pi access to OpenBao must be established independently of database access;
 SlickFlow policies, machine authentication, rotation and recovery are unprovisioned.
 
-Before #109 is complete, the owner must approve this record and an authorized
-operator must verify the actual host inventory. Record inspection date, sanitized
+Before actual provisioning/deployment, the owner must approve remaining operating
+decisions and an authorized operator must recheck the target inventory. Record inspection date, sanitized
 OS/architecture/RAM/free-storage facts, tool versions and pass/fail access results.
 Do not infer target characteristics from the development machine. If access is
 unavailable, retain explicit unverified status and keep dependent implementation
@@ -207,3 +207,13 @@ runtime/migration images from one archived source revision, pinned base digests,
 non-root identities and a disposable PostgreSQL 18.6 image smoke check. See
 [build/run and verification instructions](../user-guide/control-plane-packaging.md).
 Packaging does not publish artifacts, provision services or authorize deployment.
+
+## Hosting configuration boundary
+
+[#111](https://github.com/skizzay/slickflow/issues/111) supplies repeatable dedicated
+database/role bootstrap, remote-database Compose hosting, a read-only preflight
+and private backup/isolated-restore tools. See the
+[hosting guide](../user-guide/control-plane-hosting.md). Actual target provisioning,
+network/TLS authorization, secret-store integration, memory enforcement and
+controlled host-reboot evidence remain pending; local tests do not satisfy those
+operational acceptance gates. No public ingress is added.

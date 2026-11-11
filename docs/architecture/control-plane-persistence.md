@@ -246,3 +246,14 @@ worker and other GitHub routes do not exist yet.
 The local Docker command binds inside its container and publishes only host loopback.
 No external identity service, tunnel or Docker host socket is configured. The
 execution plane remains a separate Java controller and isolated job containers.
+
+## Private hosting and recovery boundary
+
+The [#111 hosting recipe](../user-guide/control-plane-hosting.md) supplies scoped
+non-superuser migrator/runtime roles and default grants in a dedicated database
+on the existing remote service. Runtime has no schema CREATE grant; migration
+credentials remain separate. Database ACLs do not replace source/role/database HBA
+restrictions, private listeners/firewalls or hostname-verified TLS. Backups cover
+one database and preserve ACL/ownership metadata, not cluster roles or secrets.
+Restore targets are new isolated databases, never automatic production resets.
+Local restart/restore tests do not establish Pi startup or host-reboot durability.
