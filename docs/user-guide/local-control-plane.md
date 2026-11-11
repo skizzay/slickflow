@@ -42,7 +42,10 @@ published and no Docker socket is mounted. It does not configure a deployment.
 To run outside Compose, build with Java 21/Maven, supply `SLICKFLOW_DB_URL`,
 `SLICKFLOW_DB_USER`, `SLICKFLOW_DB_PASSWORD` from your environment/secret store and
 run the runtime JAR. The separate `-migrate.jar` uses those same environment
-variables directly and does not load Spring YAML. `SLICKFLOW_DB_URL` must include
+variables directly and does not load Spring YAML. For deployment grants, optional
+`SLICKFLOW_DB_RUNTIME_ROLE` names an existing unprivileged runtime role; the
+[hosting recipe](control-plane-hosting.md) sets it explicitly so the migrator
+creates/owns schemas and applies runtime grants after schema maintenance. `SLICKFLOW_DB_URL` must include
 one dedicated domain schema, for example:
 
 ```text

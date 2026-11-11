@@ -267,6 +267,8 @@ class BootstrapIntegrationTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> DatabaseMigrator.migrate(source, schemas, "invalid;role"))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DatabaseMigrator.migrate(source, schemas, "pg_monitor"))
+                .isInstanceOf(IllegalArgumentException.class);
         assertThat(new JdbcTemplate(source).queryForObject(
                 "select count(*) from pg_namespace where nspname in ('slickflow','flowable')", Integer.class)).isZero();
     }

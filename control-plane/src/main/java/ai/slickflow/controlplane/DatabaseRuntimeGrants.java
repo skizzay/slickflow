@@ -12,7 +12,8 @@ final class DatabaseRuntimeGrants {
     private final String runtimeRole;
 
     DatabaseRuntimeGrants(DataSource source, DatabaseSchemas schemas, String runtimeRole) {
-        if (runtimeRole == null || !runtimeRole.matches("[a-z][a-z0-9_]{0,62}")) {
+        if (runtimeRole == null || !runtimeRole.matches("[a-z][a-z0-9_]{0,62}")
+                || runtimeRole.startsWith("pg_")) {
             throw new IllegalArgumentException("Use a dedicated lowercase runtime role identifier");
         }
         this.source = source;
