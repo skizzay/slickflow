@@ -10,13 +10,16 @@ The repository supplies repeatable database bootstrap, a remote-database hosting
 Compose file, read-only host preflight and database backup/isolated-restore tools.
 Local disposable verification is implemented. Read-only Pi inspection verified
 SSH administration, Debian 13/ARM64, Docker startup enabled at boot, Compose,
-Python and flock. Actual Pi/shared-database provisioning, private network/TLS
-authorization, ARM64 runtime verification and a controlled host reboot remain
-unverified. The kernel command line explicitly disables the memory controller
+Python and flock. The dedicated database, schemas and two scoped NOLOGIN roles have now been
+created on the shared PostgreSQL 18.6 service using the tested bootstrap. Owner
+and role privilege flags were verified; passwords, application migrations and
+network authorization are not configured. Pi runtime provisioning, private
+network/TLS authorization, ARM64 runtime verification and a controlled host
+reboot remain unverified. The kernel command line explicitly disables the memory controller
 (`cgroup_disable=memory`), and Docker reports memory/swap limit support false.
-The supplied database service name did not resolve from the workstation or Pi;
-a working administration/service endpoint is still needed. No service, boot
-configuration or database was changed during inspection. These instructions do not authorize
+Database DNS resolution and SSH administration now succeed from the workstation;
+the Pi also resolves the database service. The earlier DNS failure is resolved.
+No boot configuration, running service or existing tenant data was changed. These instructions do not authorize
 another application's interruption, secret-store changes or reinitialization.
 The [deployment contract](../requirements/control-plane-deployment.md) owns
 remaining access, cost, resource and deployment decisions. Keep PRs draft until

@@ -6,8 +6,8 @@ This is a proposed operating contract, not evidence of a deployed environment.
 The owner has selected the existing Pi, PostgreSQL service and Caddy, and
 approved a provisional runtime memory budget; enforcement is not yet available. Remaining inventory, access, cost
 and deployment authorization decisions are pending. The existing shared database
-upgrade and dated host inspection are operational evidence; SlickFlow hosting
-and its database identities have not been provisioned.
+upgrade and dated host inspection are operational evidence; SlickFlow runtime hosting and login secrets remain unprovisioned; dedicated
+database/schema ownership and scoped NOLOGIN roles are now initialized.
 
 ## Baseline and integration
 
@@ -34,7 +34,7 @@ publishing its sensitive details.
 | Decision | Proposal | Approval / verification |
 |---|---|---|
 | Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Authorized November 9 inspection reconfirmed OS/architecture and existing Forgejo; Pi model undocumented; SlickFlow runtime/userspace checks pending |
-| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; SlickFlow database, schemas and DDL/DML roles not provisioned |
+| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and scoped NOLOGIN DDL/DML roles created; login secrets and application migration pending |
 | Capacity | Provisional runtime budget of 1 GiB including a 512 MiB heap (`-Xmx512m`); no workers | Owner approved budget; November 7 inspection found Docker/kernel memory-limit enforcement unavailable and Docker stats zero; November 9 available-RAM/storage snapshots exist, but SlickFlow peak usage and containment remain unverified |
 | Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | SlickFlow storage, access restrictions and backup coverage unverified |
 | Access | Existing local SSH administration; dedicated deployment/maintenance identities pending | Dated owner inventory verifies administration only; existing application-specific database TLS/HBA permissions do not authorize SlickFlow |
@@ -215,8 +215,9 @@ database/role bootstrap, remote-database Compose hosting, a read-only preflight
 and private backup/isolated-restore tools. See the
 [hosting guide](../user-guide/control-plane-hosting.md). Read-only target inspection verified Pi SSH access, Debian 13/ARM64, Compose
 and Docker enabled at boot. It confirmed `cgroup_disable=memory` and absent
-Docker memory-limit support; the supplied database service endpoint did not
-resolve from either the workstation or Pi. Actual target provisioning,
+Docker memory-limit support. Database DNS/SSH access now works; the tested
+bootstrap initialized the dedicated database/schemas and scoped NOLOGIN roles
+on PostgreSQL 18.6, with ownership and privilege checks passing. Runtime provisioning,
 network/TLS authorization, secret-store integration, memory enforcement and
 controlled host-reboot evidence remain pending; local tests do not satisfy those
 operational acceptance gates. No public ingress is added.
