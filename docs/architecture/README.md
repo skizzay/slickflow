@@ -26,3 +26,5 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 - [Configured manual plan approval](manual-plan-approval.md) — human OAuth2 authority, immutable pins and transactional approval/invalidation (#46).
 
 - [Deployment operating contract](../requirements/control-plane-deployment.md) — proposed two-host boundary, serialized maintenance and preservation requirements; remote PostgreSQL 18.6 (existing-service upgrade/recovery verified) and Pi Caddy behind Cloudflare Tunnel selected/proposed; application hosting is not provisioned.
+
+- [Control-plane packaging](../user-guide/control-plane-packaging.md) — JRE-only runtime/migration image boundary and committed-source provenance (#110).

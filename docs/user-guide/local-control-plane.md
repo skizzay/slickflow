@@ -4,6 +4,10 @@ Implements [#7](https://github.com/skizzay/slickflow/issues/7). This starts a lo
 control plane with PostgreSQL, a health endpoint and optional GitHub webhook
 ingress. Worker execution and PR publication remain subsequent work.
 
+For JRE-only deployable images and PostgreSQL 18.6 packaging smoke checks, see
+[control-plane packaging](control-plane-packaging.md). Development commands below
+retain their PostgreSQL 17.11 baseline.
+
 Requirements: Docker Engine and Compose v2. Commands run from the repository root.
 Java 21 and Maven are included in the build container; neither is required on the host.
 
