@@ -1,4 +1,4 @@
-# Requestor installs/reviews this as .github/workflows/deploy_control_plane.yaml.
+# Requestor installs/reviews this as .github/workflows/deploy-control-plane.yaml.
 # This template is probe-only. No checkout, deployment or approval automation.
 name: Control-plane protected runner probe
 on:

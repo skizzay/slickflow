@@ -6,7 +6,7 @@ probe entry point on default branch `main`, not epic-to-main integration or a
 production deployment workflow. GitHub requires the workflow on the default
 branch before offering manual dispatch.
 
-`.github/workflows/deploy_control_plane.yaml` permits manual dispatch in this
+`.github/workflows/deploy-control-plane.yaml` permits manual dispatch in this
 repository on `main` or `epic/108`. Its only job requires environment
 `control-plane-production` and runner labels `self-hosted`, `linux`, `x64`,
 `slickflow-deploy`. Contents/Actions permissions are read-only; OIDC token issuance
@@ -16,11 +16,9 @@ migration, deployment or automated approval. Concurrency shares the production
 maintenance workflow group and does not cancel an in-progress operation.
 
 Before dispatch, the database admin agent must enroll the exact reviewed workflow
-path **`.github/workflows/deploy_control_plane.yaml`**, branch-specific identity
-and merged workflow revision into its admission/OIDC policy. The supplied admin
-template/tooling originally names a hyphenated path; that is a different identity
-and must be reconciled to this underscore filename. Do not weaken policy with a
-wildcard to accommodate the mismatch. Enroll the actual merged commit, not the
+path **`.github/workflows/deploy-control-plane.yaml`**, branch-specific identity
+and merged workflow revision into its admission/OIDC policy. This path matches the supplied admin template and tooling.
+Do not weaken exact identity/revision policy with a wildcard. Enroll the actual merged commit, not the
 PR head or an unreviewed future revision. The workflow must also exist at the
 reviewed revision on `epic/108` before dispatching that branch.
 
