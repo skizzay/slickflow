@@ -107,3 +107,15 @@ mixed revisions/architectures/attempts. Its JSON output selects ARM64 runtime an
 amd64 migration digests and preserves run identity. It does not approve a release,
 change registry visibility, stage secrets or execute deployment. The protected
 deployment runner and maintenance interface remain separate gates.
+
+## Verified publication
+
+Trusted [run 43793061929](https://github.com/skizzay/slickflow/actions/runs/43793061929)
+succeeded for merged revision `50967109c85b9504d6b198f17dac1b28993db09a`.
+Both native validation and publication jobs passed. Both attempt-1 provenance
+records were checked against the successful trusted run and source revision.
+The selected ARM64 runtime and amd64 migrator manifests/configuration were
+independently read from GHCR: anonymous digest pull, native architecture,
+UID/GID 10001:10001 and exact revision labels passed. No package visibility was
+changed. This verifies publication, not application deployment or Pi acceptance.
+Failure-path tests remain offline; no deliberate trusted-run failure was injected.

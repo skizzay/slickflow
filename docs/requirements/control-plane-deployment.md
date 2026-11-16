@@ -39,7 +39,7 @@ publishing its sensitive details.
 | Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | Admin reports private access restrictions verified; SlickFlow backup coverage and application persistence acceptance pending |
 | Access | Existing administration plus restricted cross-host maintenance interface | Admin reports SlickFlow-specific TLS/LDAP/source restrictions and positive/negative tests passed |
 | Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; fresh versions and runtime support checks pending |
-| Registry | GHCR with commit-linked immutable digests | Proposed; visibility, access and retention pending |
+| Registry | GHCR with commit-linked immutable digests | Native publication and anonymous selected-digest pulls verified; run provenance retained 30 days; image retention policy remains pending |
 | Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
 | DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
 | Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
@@ -247,8 +247,8 @@ account/coordination evidence is distinct from application validation.
 The [CI guide](../user-guide/control-plane-ci.md) defines native PR verification
 and trusted-branch GHCR publication with commit/digest/run records. Publication
 requires both architecture checks; PRs cannot receive publication credentials.
-First successful trusted publication remains acceptance evidence to collect after
-workflow integration. This configuration does not deploy to either host.
+Trusted native publication and selected-image anonymous digest access are
+verified in the CI guide. This configuration does not deploy to either host.
 
 ## Protected deployment execution (#113)
 
