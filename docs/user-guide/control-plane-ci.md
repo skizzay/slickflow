@@ -43,9 +43,10 @@ Images carry the full source revision and non-root UID/GID 10001. Pi runtime and
 database-host migrator use different native image digests with the same revision.
 There is no multi-platform manifest/index requirement for these split hosts.
 
-The run summary and `control-plane-provenance-ARCH` workflow artifact contain
+The run summary and `control-plane-provenance-ARCH-ATTEMPT` workflow artifact contain
 `provenance-ARCH.json`: source revision, architecture, runtime/migration registry
-digests, pipeline URL and attempt. Workflow artifacts are retained for 30 days;
+digests, pipeline URL and attempt. Each rerun uses a separate artifact name so it cannot
+collide with or overwrite an earlier attempt. Workflow artifacts are retained for 30 days;
 preserve the approved deployment identities privately beyond that if needed.
 This is a traceability record, not a signed supply-chain attestation. No raw
 application payloads, private network inventory or production logs are uploaded.

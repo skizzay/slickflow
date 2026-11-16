@@ -97,7 +97,7 @@ jobs:
         run: ./scripts/publish-control-plane.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: control-plane-provenance-${{ matrix.arch }}
+          name: control-plane-provenance-${{ matrix.arch }}-${{ github.run_attempt }}
           path: provenance-${{ matrix.arch }}.json
           if-no-files-found: error
           retention-days: 30
