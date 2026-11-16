@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublicationTest(unittest.TestCase):
-    def run_publication(self, event='push', ref='refs/heads/epic/108', fail=''):
+    def run_publication(self, event='push', ref='refs/heads/epic/108', fail='', summary=True):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder)
             (work / 'scripts').mkdir()
@@ -40,6 +40,8 @@ if args[:2]==['image','inspect']:
                        GITHUB_RUN_ID='123', GITHUB_STEP_SUMMARY=str(work / 'summary'),
                        GITHUB_EVENT_NAME=event, GITHUB_REF=ref,
                        SLICKFLOW_PUBLISH_ARCH='amd64', CALL_LOG=str(work / 'calls'), FAIL_PUSH=fail)
+            if not summary:
+                env.pop('GITHUB_STEP_SUMMARY', None)
             result = subprocess.run(['bash', str(work / 'scripts/publish-control-plane.sh')],
                                     env=env, capture_output=True, text=True)
             calls = (work / 'calls').read_text() if (work / 'calls').exists() else ''
@@ -55,6 +57,13 @@ if args[:2]==['image','inspect']:
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(calls, '')
                 self.assertIsNone(manifest)
+
+    def test_missing_summary_fails_before_publication(self):
+        result, calls, manifest = self.run_publication(summary=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('pipeline summary path required', result.stderr)
+        self.assertEqual(calls, '')
+        self.assertIsNone(manifest)
 
     def test_push_failure_cannot_report_success_or_pair(self):
         result, calls, manifest = self.run_publication(fail='yes')

@@ -74,8 +74,9 @@ gh run rerun RUN_ID --repo skizzay/slickflow
 gh run watch RUN_ID --repo skizzay/slickflow --exit-status
 ```
 
-Manual dispatch is restricted to the two trusted branches; GitHub requires the
-workflow on the default branch before offering dispatch. Until then, merging
+Manual dispatch can start validation on other selected refs, but publication
+is restricted to the two trusted branches. GitHub requires the workflow on the
+default branch before offering dispatch. Until then, merging
 this workflow into `epic/108` triggers its first trusted publication. Never push
 an unreviewed change directly to a trusted branch to exercise publication.
 

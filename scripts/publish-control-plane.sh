@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 : "${GITHUB_REPOSITORY:?repository required}"
 : "${GITHUB_SHA:?commit required}"
 : "${GITHUB_RUN_ID:?pipeline run required}"
+: "${GITHUB_STEP_SUMMARY:?pipeline summary path required}"
 : "${SLICKFLOW_PUBLISH_ARCH:?native architecture required}"
 [[ "$GITHUB_REPOSITORY" == skizzay/slickflow && "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
 [[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]]
