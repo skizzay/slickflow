@@ -7,9 +7,15 @@ cd "$(dirname "$0")/.."
 : "${GITHUB_RUN_ID:?pipeline run required}"
 : "${GITHUB_STEP_SUMMARY:?pipeline summary path required}"
 : "${SLICKFLOW_PUBLISH_ARCH:?native architecture required}"
-[[ "$GITHUB_REPOSITORY" == skizzay/slickflow && "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
-[[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]]
-case "$SLICKFLOW_PUBLISH_ARCH" in amd64|arm64) ;; *) exit 1 ;; esac
+[[ "$GITHUB_REPOSITORY" == skizzay/slickflow && "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+  echo 'Publication requires skizzay/slickflow and a full lowercase commit SHA' >&2; exit 1;
+}
+[[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]] || {
+  echo 'Publication checkout does not match the selected commit' >&2; exit 1;
+}
+case "$SLICKFLOW_PUBLISH_ARCH" in amd64|arm64) ;; *)
+  echo 'Publication supports only native amd64 or arm64' >&2; exit 1 ;;
+esac
 case "${GITHUB_EVENT_NAME:-}:${GITHUB_REF:-}" in
   push:refs/heads/epic/108|push:refs/heads/main|workflow_dispatch:refs/heads/epic/108|workflow_dispatch:refs/heads/main) ;;
   *) echo 'Publication requires an approved trusted source event' >&2; exit 1 ;;

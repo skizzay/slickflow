@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublicationTest(unittest.TestCase):
-    def run_publication(self, event='push', ref='refs/heads/epic/108', fail='', summary=True):
+    def run_publication(self, event='push', ref='refs/heads/epic/108', fail='', summary=True, repository='skizzay/slickflow',
+                        arch='amd64', sha=None):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder)
             (work / 'scripts').mkdir()
@@ -36,10 +37,10 @@ if args[:2]==['image','inspect']:
 ''')
             docker.chmod(0o755)
             env = dict(os.environ, PATH=folder + os.pathsep + os.environ['PATH'],
-                       GITHUB_REPOSITORY='skizzay/slickflow', GITHUB_SHA=revision,
+                       GITHUB_REPOSITORY=repository, GITHUB_SHA=sha or revision,
                        GITHUB_RUN_ID='123', GITHUB_STEP_SUMMARY=str(work / 'summary'),
                        GITHUB_EVENT_NAME=event, GITHUB_REF=ref,
-                       SLICKFLOW_PUBLISH_ARCH='amd64', CALL_LOG=str(work / 'calls'), FAIL_PUSH=fail)
+                       SLICKFLOW_PUBLISH_ARCH=arch, CALL_LOG=str(work / 'calls'), FAIL_PUSH=fail)
             if not summary:
                 env.pop('GITHUB_STEP_SUMMARY', None)
             result = subprocess.run(['bash', str(work / 'scripts/publish-control-plane.sh')],
@@ -55,6 +56,20 @@ if args[:2]==['image','inspect']:
             with self.subTest(event=event, ref=ref):
                 result, calls, manifest = self.run_publication(event, ref)
                 self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, '')
+                self.assertIsNone(manifest)
+
+    def test_invalid_identity_or_architecture_has_clear_prepublication_error(self):
+        for inputs, message in [
+            ({'repository': 'other/repo'}, 'requires skizzay/slickflow'),
+            ({'sha': 'invalid'}, 'full lowercase commit SHA'),
+            ({'sha': 'a' * 40}, 'checkout does not match'),
+            ({'arch': 'ppc64le'}, 'only native amd64 or arm64'),
+        ]:
+            with self.subTest(inputs=inputs):
+                result, calls, manifest = self.run_publication(**inputs)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
                 self.assertEqual(calls, '')
                 self.assertIsNone(manifest)
 
