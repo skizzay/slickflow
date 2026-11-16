@@ -281,3 +281,20 @@ Disposable packaged migration/replay, DML-only runtime, persistence and isolated
 restore checks pass; these do not substitute for live-host acceptance. The fixture
 password file is owned by UID/GID 10001 with mode 0400 and is removed with the
 unique test fixture; production secrets never enter these tests.
+
+## Initial resource envelope
+
+The owner selected 1 CPU per runtime/migration service and 1 GiB migration memory;
+runtime retains its 1 GiB container limit and 512 MiB heap. The published amd64
+pair from revision `50967109c85b9504d6b198f17dac1b28993db09a` passed the disposable
+hosting/repeated migration/default-grant/runtime/persistence/isolated-restore
+checks with those CPU/memory limits enforced. The verification recipe now embeds
+the same limits; its rendered configuration was checked equivalent to the tested
+override. Reproduce using `./scripts/verify-hosting.sh` with immutable native image
+IDs as above. This is bounded amd64 functional verification, not peak-memory
+profiling, Pi ARM64 capacity acceptance or production TLS/deployment evidence.
+
+The owner selected reuse of the existing approved homelab backup policy, with
+SlickFlow-specific backup and isolated restore. The admin must return its exact
+retention, custody and recovery limits/evidence before deployment. This choice
+does not mark unperformed live backup/restore or readiness checks passed.

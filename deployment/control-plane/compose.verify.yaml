@@ -14,6 +14,8 @@ services:
       timeout: 3s
       retries: 60
   migration:
+    mem_limit: 1g
+    cpus: 1
     image: ${SLICKFLOW_MIGRATION_IMAGE:?required}
     environment:
       SLICKFLOW_DB_URL: jdbc:postgresql://db:5432/slickflow?currentSchema=slickflow
@@ -21,6 +23,8 @@ services:
       SLICKFLOW_DB_RUNTIME_ROLE: slickflow_runtime
       SLICKFLOW_DB_PASSWORD: ${SLICKFLOW_FIXTURE_PASSWORD:?required}
   runtime:
+    mem_limit: 1g
+    cpus: 1
     image: ${SLICKFLOW_RUNTIME_IMAGE:?required}
     restart: unless-stopped
     environment:

@@ -146,8 +146,12 @@ with artifact digests and pipeline-run provenance. Verify with real PostgreSQL
 before publication; select the target image platform only after inventory.
 Deploy only the approved source commit/artifacts, never a floating tag. Limit
 initial operation to one runtime on the Pi and one dedicated remote database. The provisional
-runtime memory budget above is approved; approve remaining CPU, migration-memory,
-disk, backup retention and ingress-rate budgets before provisioning. Exceeding a
+runtime memory budget above is approved. The owner also selected 1 CPU per
+service and 1 GiB migration memory; the published amd64 pair passed disposable
+hosting/recovery checks within those limits. Pi capacity remains to verify.
+Record remaining disk, backup retention/recovery and ingress-rate budgets before
+provisioning. Reuse the existing approved homelab backup policy with SlickFlow
+backup/isolated-restore evidence; exact policy values still require admin readback. Exceeding a
 budget or requiring a paid resource holds deployment for an owner decision.
 
 PostgreSQL stays on a private network without a public port. Permit only HTTPS
