@@ -90,3 +90,20 @@ GitHub; local simulations alone do not complete #112. A bounded implementation
 PR may merge to enable the first trusted run; leave #112 open until the published
 pair and gate behavior are verified. Deployment pipeline #113 and native Pi
 startup/real database initialization remain separate acceptance work.
+
+## Verify a pair before deployment preparation
+
+With authenticated GitHub CLI access to workflow artifacts:
+
+```sh
+python3 scripts/verified_control_plane_artifacts.py \
+  --run PUBLICATION_RUN_ID --revision APPROVED_FULL_COMMIT
+```
+
+The #113 helper checks a completed successful run of this exact workflow in this
+repository, a trusted push/dispatch source, the approved revision and both current
+attempt provenance records. It rejects mutable/foreign image references and
+mixed revisions/architectures/attempts. Its JSON output selects ARM64 runtime and
+amd64 migration digests and preserves run identity. It does not approve a release,
+change registry visibility, stage secrets or execute deployment. The protected
+deployment runner and maintenance interface remain separate gates.

@@ -43,7 +43,7 @@ publishing its sensitive details.
 | Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
 | DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
 | Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
-| Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment name, approvers, repository-plan support and runner placement pending |
+| Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment control-plane-production requires owner review, allows only main/epic/108 and disables admin bypass; dedicated isolated runner provisioning pending |
 | Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
 
 Inventory sources: the [owner review on PR #116](https://github.com/skizzay/slickflow/pull/116#issuecomment-6754501694)
@@ -249,3 +249,19 @@ and trusted-branch GHCR publication with commit/digest/run records. Publication
 requires both architecture checks; PRs cannot receive publication credentials.
 First successful trusted publication remains acceptance evidence to collect after
 workflow integration. This configuration does not deploy to either host.
+
+## Protected deployment execution (#113)
+
+The owner selected a dedicated trusted deployment runner and protected GitHub
+environment. Environment `control-plane-production` is configured with owner
+review, branch policies permitting only `main` and `epic/108`, and administrator
+bypass disabled. The sole owner can explicitly review their own dispatch; no
+agent may grant that approval. The admin agent must provision an isolated
+one-job runner and a narrow identity-gated launcher into its existing maintenance
+controller before the application workflow can execute. Runner labels alone do
+not grant production authority. PR validation stays on GitHub-hosted runners.
+
+The [CI artifact selector](../user-guide/control-plane-ci.md#verify-a-pair-before-deployment-preparation)
+rejects incomplete/untrusted publication records before selecting native digests.
+It supplies evidence, not deployment approval. Runner/launcher acceptance,
+remaining budgets, backup readiness and actual deployment are pending.
