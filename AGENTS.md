@@ -41,6 +41,7 @@ to scope source inspection; a repository-wide scan is not the onboarding path.
 | Worker API messages, leases, fencing and cancellation | [Worker protocol](docs/requirements/worker-protocol.md) — proposed contract, not implemented endpoints |
 | Initial deployment target, operating decisions and authorization gates | [Control-plane deployment contract](docs/requirements/control-plane-deployment.md) — proposed; host verification and owner decisions pending |
 | Deployable runtime/migration images, revision identity and packaging smoke checks | [Control-plane packaging](docs/user-guide/control-plane-packaging.md) |
+| Private host/database bootstrap, runtime secrets, restart and recovery | [Control-plane hosting](docs/user-guide/control-plane-hosting.md) |
 | Local build, verification and runtime commands | [Local control plane](docs/user-guide/local-control-plane.md) |
 | Evidence behind a design decision or experiment reproduction | [Research index](docs/research/README.md) — historical evidence, not the current specification |
 
