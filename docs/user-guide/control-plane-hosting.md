@@ -6,27 +6,25 @@ merged through [PR #116](https://github.com/skizzay/slickflow/pull/116).
 [Packaging #110](https://github.com/skizzay/slickflow/issues/110) is also integrated
 through [PR #117](https://github.com/skizzay/slickflow/pull/117).
 
-The repository supplies repeatable database bootstrap, a remote-database hosting
-Compose file, read-only host preflight and database backup/isolated-restore tools.
-Local disposable verification is implemented. Read-only Pi inspection verified
-SSH administration, Debian 13/ARM64, Docker startup enabled at boot, Compose,
-Python and flock. The dedicated database, schemas and two scoped NOLOGIN roles have now been
-created on the shared PostgreSQL 18.6 service using the tested bootstrap. Owner
-and role privilege flags were verified; passwords, application migrations and
-network authorization are not configured. Pi runtime provisioning, private
-network/TLS authorization, ARM64 runtime verification and a controlled host
-reboot persistence remains unverified. Subsequent read-only verification found
-the memory controller available, Docker memory/swap support enabled, and an
-existing container limit matching its cgroup. Active boot arguments contain both
-disable/enable memory flags while the saved configuration has only the enable
-flag; the administrator should reconcile that discrepancy.
-Database DNS resolution and SSH administration now succeed from the workstation;
-the Pi also resolves the database service. The earlier DNS failure is resolved.
-No boot configuration, running service or existing tenant data was changed. These instructions do not authorize
-another application's interruption, secret-store changes or reinitialization.
-The [deployment contract](../requirements/control-plane-deployment.md) owns
-remaining access, cost, resource and deployment decisions. Keep PRs draft until
-required target evidence exists; the application deployment pipeline is #113.
+The repository supplies dedicated database bootstrap, separate remote-database
+runtime and migration Compose recipes, host-specific read-only preflight and
+backup/isolated-restore tools. Runtime runs on the ARM64 Pi; the database admin
+agent runs the matching migration executable on the amd64 database server.
+
+The administrator's November 15 completion report records LDAP-authenticated
+restricted logins, OpenBao secret custody and automated rotation, protected
+consumer files, private DNS and hostname-verified TLS, successful positive/negative
+connection tests and preserved existing-tenant health. These are administrator
+reported results, not application startup evidence. No application migration or
+runtime deployment has occurred; application schemas remain empty. Native runtime
+startup, application grants, SlickFlow backup/restore and host-reboot persistence
+remain pending. An independent Internet port scan was not performed. Private
+endpoints, source addresses, secret references and operator commands stay in the
+owner-controlled administrator inventory, not this public guide.
+
+Database maintenance requests go through the existing database admin agent.
+Public ingress and execution remain disabled. Keep PRs draft until required
+operational evidence exists; the deployment pipeline is #113.
 
 ## Database bootstrap and identities
 
@@ -64,16 +62,19 @@ Flowable maintenance and the grant transaction are separate steps, not one atomi
 migration; serialized maintenance remains mandatory. Existing dedicated schemas
 already owned by the migrator need no drop/recreation.
 
-A trusted operator assigns separate generated login secrets through the approved
-secret process, for example interactive psql `\password` followed by enabling
-LOGIN for each role. Never put literal passwords in SQL, arguments, logs or Git.
-OpenBao exists, but its SlickFlow policy, machine authentication, access route,
-secret ownership and rotation/recovery procedures still need selection and
-verification. No new secret-store administrator credentials are created here.
+The admin agent provisions the two LDAP service identities and maintains their
+credentials in OpenBao. PostgreSQL roles remain separate authorization records;
+LDAP validates passwords. Do not assign local PostgreSQL passwords as a fallback.
+Automated rotation must update the directory, OpenBao and each consumer file,
+coordinate consumer reconnect/recreation, and recover an interrupted generation.
+The reported implementation performs these steps with maintenance locking; its
+private runbooks own the exact commands, schedules and revocation procedure.
 
 Database ACLs alone cannot prevent these roles using PUBLIC privileges in other
 shared databases. Install reviewed, database/role/source-specific HBA rules before
-allowing login remotely. The pattern is an exact `hostssl` allow for database
+allowing login remotely. Reject these roles on Unix sockets before broad local
+trust rules; narrowly allow only the approved TCP sources, including the database
+server migration source, before broader rejects/trust rules. The pattern is an exact TLS/LDAP `hostssl` allow for database
 `slickflow` plus each role's approved source CIDR, followed by IPv4/IPv6 catch-all
 rejects for both SlickFlow roles. Place them before broader matching rules; retain
 other tenants' existing rules. Never broaden an existing application's allow to
@@ -89,12 +90,23 @@ the application Compose file. Local tests do not establish public unreachability
 ## Runtime host and secrets
 
 Use the Pi Docker/Compose installation with Docker startup enabled at boot.
-Select matching immutable ARM64 images as described in
-[packaging](control-plane-packaging.md). Prepare private operator environment
-configuration containing these references and approved CPU/migration-memory
-budgets. Image labels must identify the same full source commit.
+Select matching immutable native images as described in
+[packaging](control-plane-packaging.md). Prepare separate private operator environment configurations on each host:
 
-Materialize separate runtime and migration password files outside the checkout,
+| Host / recipe | Required local inputs |
+|---|---|
+| Pi / `deployment/control-plane/compose.yaml` | ARM64 `SLICKFLOW_RUNTIME_IMAGE`, `SLICKFLOW_RUNTIME_PASSWORD_FILE`, TLS URL/CA and approved CPU budget |
+| Database server / `deployment/control-plane/compose.migration.yaml` | amd64 `SLICKFLOW_MIGRATION_IMAGE`, `SLICKFLOW_MIGRATION_PASSWORD_FILE`, TLS URL/CA and approved CPU/migration-memory budgets |
+
+Both image labels must identify the same approved full source commit; compare the
+two preflight outputs across hosts. The Pi requires no migrator image/password and
+the database recipe requires no runtime image/password. Migration uses trusted
+host networking to retain the approved database-server source; do not run it from
+an unapproved bridge source or mount a Docker socket. A matching standalone JAR
+is an admin-operated alternative to the one-shot container.
+
+Materialize only the runtime password file on Pi and only the migration password
+file on the database server, outside the checkout,
 readable by container UID/GID 10001 and inaccessible to other users. Compose
 file-backed secrets preserve source-file ownership/permissions; declaring a mode
 in Compose does not fix a host file. The runtime imports the password through
@@ -109,17 +121,24 @@ The engine schema is fixed to `flowable` in this hosting recipe. Required extern
 variables are declared in the Compose file and checked by:
 
 ```sh
-./scripts/check-control-plane-host.sh
+./scripts/check-control-plane-host.sh runtime    # on Pi
+./scripts/check-control-plane-host.sh migration  # on database server
 ```
 
 Preflight is read-only: it never pulls images, changes kernel settings or starts
-services. It requires ARM64/non-root paired images, appropriate private secret
-files, TLS configuration and actual Docker memory-limit support. Read-only verification confirms Pi memory-limit support is now available;
+services. It checks only the selected host role: native non-root image, its own private
+secret file, TLS configuration and actual Docker memory-limit support. Runtime
+requires ARM64; migration supports native amd64 or ARM64. Read-only verification confirms Pi memory-limit support is now available;
 preflight still checks it before use. The 512 MiB heap is not whole-container
 containment.
 
 After authorized maintenance, operations use the persistent project identity
-`slickflow-control-plane` with `deployment/control-plane/compose.yaml`. Runtime
+`slickflow` with `deployment/control-plane/compose.yaml`, installed by the
+operator at `/opt/slickflow/compose.yaml` with private configuration at
+`/etc/slickflow/compose.env`. This matches the admin rotation receiver's requested
+registration; confirm registration before starting runtime. The receiver requires
+an immutable image matching the registered container and refuses unapproved
+configuration/image changes. Coordinate registration changes during deployment. Runtime
 restart policy is `unless-stopped`; an intentional maintenance stop remains
 stopped across Docker restarts. The root filesystem is read-only with bounded
 `/tmp`, local logs are rotated, CPU/memory/PID limits are explicit, and HTTP is
@@ -127,31 +146,43 @@ published only to host loopback. Webhooks, execution, inbox dispatch, manual
 approval and workers are forced off. No public route, database volume or Docker
 socket mount is created. Persistent data stays on the existing database host.
 
-Serialize maintenance/deployment across operators and automation. Stop runtime
-before running the maintenance-profile migration service; only start it after
-successful migration, then verify status-only health. Use distinct credentials
-for those two steps. Pipeline serialization and automated deployment are #113;
-Compose alone supplies no distributed maintenance lock. Use the same private lock
-path on the Pi for every authorized operator; direct database administration must
-coordinate with that maintenance window too. For example, after all preflight and
-authorization gates pass:
+Serialize maintenance/deployment through the database admin agent's installed
+`maintenance.py` interface. The administrator reports that it acquires database
+then Pi locks, holds both through migration/startup, and shares them with rotation.
+Use its private runbook for plan staging, exact paths, register/deploy/status/wait
+commands and cancel/abort recovery. Submission success is not deployment success;
+wait for final operation status and application health. Do not invoke Compose
+independently or acquire a separate flock.
 
-```sh
-(
-  set -e
-  flock -n 9
-  compose=(docker compose -p slickflow-control-plane \
-    -f deployment/control-plane/compose.yaml)
-  "${compose[@]}" stop runtime
-  "${compose[@]}" --profile maintenance run --rm migration
-  "${compose[@]}" up -d runtime
-  # Check after startup; a failed probe is not a successful deployment.
-  curl --max-time 5 --fail http://127.0.0.1:8080/actuator/health
-) 9>"${SLICKFLOW_MAINTENANCE_LOCK:?shared private lock path required}"
-```
+Registration freezes reviewed candidates without starting services. Deployment
+requires matching immutable native images, exact recipe/config hashes, approved
+resource budgets, the expected previous registration and an operator attestation
+that ingress is closed. The wrapper does not close ingress itself. It supports
+the one-shot migration recipe; standalone JAR execution is not exposed.
 
-This local lock is not coordination across independent hosts. No command here performs
-automatic schema repair, database reset or cross-schema-version rollback.
+The administrator reports successful contention, disconnect, deadline,
+cancellation and explicit fence recovery probes. Failure retains durable fences
+and affected runtime stays stopped; recovery requires the documented admin abort
+and a new approved operation, never schema repair/reset or implicit retry.
+
+Within that coordinated maintenance operation:
+
+1. Verify the exact approved paired revision and per-host preflight results.
+2. Stop Pi runtime and keep ingress closed.
+3. Have the database admin agent run the matching migration executable on the
+   database server using `compose.migration.yaml` (service `migration`) or its
+   matching standalone JAR, scoped migration credentials and hostname-verified TLS.
+4. On migration/grant failure, preserve data, keep runtime stopped and escalate.
+5. Update/confirm the rotation receiver registration and start only the Pi runtime
+   with project `slickflow`; verify status-only health and fresh database access.
+6. Release maintenance through the admin protocol only after success or its
+   documented failure handoff. Rotation must not race these steps.
+
+No command performs automatic schema repair, reset or schema-incompatible rollback.
+The administrator reports weekly automated rotation and daily maintenance checks;
+future-runtime recreation/health during rotation still needs application evidence.
+Failures leave the affected runtime stopped; local failure reporting exists but
+external alert delivery is not configured.
 
 For acceptance, record a synthetic sanitized database marker, restart/recreate the
 application and verify it, then arrange owner-approved maintenance windows for
@@ -199,6 +230,17 @@ An incompatible pre-release V1 revision blocks startup: preserve required data
 and obtain a human-approved preservation/reinitialization decision. Do not restore
 older application/schema artifacts over live new writes or promise rollback
 across incompatible V1 revisions.
+
+## Configuration separation checks
+
+```sh
+python3 -m unittest discover -s scripts/tests -v
+```
+
+These checks render both production recipes independently with synthetic inputs,
+assert credential/service separation, migration host networking and loopback-only
+runtime publication, and exercise mutable-image preflight rejection. They do not
+start services or verify live LDAP/TLS/rotation.
 
 ## Disposable verification and evidence
 

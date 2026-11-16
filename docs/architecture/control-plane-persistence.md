@@ -265,3 +265,13 @@ restrictions, private listeners/firewalls or hostname-verified TLS. Backups cove
 one database and preserve ACL/ownership metadata, not cluster roles or secrets.
 Restore targets are new isolated databases, never automatic production resets.
 Local restart/restore tests do not establish Pi startup or host-reboot durability.
+
+## Hosted migration placement (#111)
+
+The database admin agent runs the standalone migrator on the database server;
+the Pi runs only the restricted runtime. Both artifacts must identify the same
+approved source revision, using native images for their different architectures.
+[Hosting](../user-guide/control-plane-hosting.md) owns the separate recipes,
+LDAP/OpenBao credential delivery and cross-host maintenance coordination with
+rotation. Runtime receives no migration secret. This placement preserves the
+existing Flyway/Flowable/grant ordering and transaction boundaries.

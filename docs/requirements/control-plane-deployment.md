@@ -226,3 +226,22 @@ on PostgreSQL 18.6, with ownership and privilege checks passing. Runtime provisi
 network/TLS authorization, secret-store integration and controlled host-reboot
 persistence evidence remain pending; local tests do not satisfy those
 operational acceptance gates. No public ingress is added.
+
+## Administrator account handoff — November 15
+
+Under #111 the database admin agent reports completed LDAP account activation,
+OpenBao custody/automated rotation, private DNS/TLS, separate protected consumer
+files and positive/negative access verification. Runtime credentials belong only
+on the Pi; migration credentials belong only on the database server. The admin
+runs the matching application migration executable there, not on the Pi.
+Certificate selection/renewal follows the admin recommendation. Existing tenants
+remain unchanged; no application initialization/deployment occurred.
+
+The [hosting guide](../user-guide/control-plane-hosting.md) defines the separate
+recipes and project `slickflow`, matching the requested rotation registration.
+The admin reports an installed register/deploy/status interface with shared
+cross-host locks, supervised execution and explicit failure fences; use that
+interface rather than one-host locking. Application startup,
+grants, recovery and host restart evidence remain pending. Earlier statements
+that login secrets or account network/TLS setup are unprovisioned are superseded
+by this administrator-reported handoff, not by independent application validation.
