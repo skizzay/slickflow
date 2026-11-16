@@ -1,0 +1,24 @@
+# Requestor installs/reviews this as .github/workflows/deploy-control-plane.yaml.
+# This template is probe-only. No checkout, deployment or approval automation.
+name: Control-plane protected runner probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: slickflow-production-deployment
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: >-
+      github.repository == 'skizzay/slickflow' &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/epic/108')
+    environment: control-plane-production
+    runs-on: [self-hosted, linux, x64, slickflow-deploy]
+    timeout-minutes: 5
+    steps:
+      - name: Authenticate and exercise the existing maintenance locks without deploying
+        run: /usr/local/bin/slickflow-deploy probe
