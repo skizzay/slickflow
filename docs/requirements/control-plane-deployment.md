@@ -2,12 +2,12 @@
 
 Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
 [target story #109](https://github.com/skizzay/slickflow/issues/109).
-This is a proposed operating contract, not evidence of a deployed environment.
-The owner has selected the existing Pi, PostgreSQL service and Caddy, and
-approved a provisional runtime memory budget; memory-limit support is now verified. Remaining inventory, access, cost
-and deployment authorization decisions are pending. The existing shared database
-upgrade and dated host inspection are operational evidence; SlickFlow runtime hosting and login secrets remain unprovisioned; dedicated
-database/schema ownership and scoped NOLOGIN roles are now initialized.
+The owner selected the existing Pi, PostgreSQL service and Caddy, approved a
+provisional runtime memory budget, and requested deployment. Memory-limit support
+is verified. The admin reports completed LDAP/OpenBao account provisioning,
+private database DNS/TLS and cross-host maintenance coordination. Application
+initialization and runtime deployment have not occurred; artifact/review gates,
+remaining resource/backup decisions and application acceptance still apply.
 
 ## Baseline and integration
 
@@ -34,15 +34,15 @@ publishing its sensitive details.
 | Decision | Proposal | Approval / verification |
 |---|---|---|
 | Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Authorized November 9 inspection reconfirmed OS/architecture and existing Forgejo; Pi model undocumented; SlickFlow runtime/userspace checks pending |
-| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and scoped NOLOGIN DDL/DML roles created; login secrets and application migration pending |
+| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and restricted LDAP logins verified by admin; application migration pending |
 | Capacity | Provisional runtime budget of 1 GiB including a 512 MiB heap (`-Xmx512m`); no workers | Owner approved budget; Read-only verification now confirms Docker memory/swap limit support and an existing container limit matching its cgroup; SlickFlow peak usage remains unmeasured and active/saved boot flags differ |
-| Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | SlickFlow storage, access restrictions and backup coverage unverified |
-| Access | Existing local SSH administration; dedicated deployment/maintenance identities pending | Dated owner inventory verifies administration only; existing application-specific database TLS/HBA permissions do not authorize SlickFlow |
+| Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | Admin reports private access restrictions verified; SlickFlow backup coverage and application persistence acceptance pending |
+| Access | Existing administration plus restricted cross-host maintenance interface | Admin reports SlickFlow-specific TLS/LDAP/source restrictions and positive/negative tests passed |
 | Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; fresh versions and runtime support checks pending |
 | Registry | GHCR with commit-linked immutable digests | Proposed; visibility, access and retention pending |
 | Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
 | DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
-| Secrets | Existing OpenBao 2.7.2 available on database host | Initialized/operational with admin login and isolated recovery verified November 2; SlickFlow selection/integration, policies and machine credentials pending |
+| Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
 | Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment name, approvers, repository-plan support and runner placement pending |
 | Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
 
@@ -117,8 +117,8 @@ private Authentik/OpenBao HTTPS. Proposed ingress is Cloudflare Tunnel → Pi Ca
 → runtime. Verify/select the exact public route and origin access/transport,
 certificate ownership/renewal and rate-limit enforcement before exposure. Existing
 Pi Caddy does not establish public TLS ownership. No second proxy is planned.
-Pi access to OpenBao must be established independently of database access;
-SlickFlow policies, machine authentication, rotation and recovery are unprovisioned.
+The admin manages OpenBao custody and restricted runtime credential delivery;
+this does not expose controller or migration credentials to runtime.
 
 Before actual provisioning/deployment, the owner must approve remaining operating
 decisions and an authorized operator must recheck the target inventory. Record inspection date, sanitized
@@ -217,15 +217,12 @@ Packaging does not publish artifacts, provision services or authorize deployment
 database/role bootstrap (without schema creation), migrator-owned schemas and
 repeatable post-migration runtime grants, remote-database Compose hosting, a read-only preflight
 and private backup/isolated-restore tools. See the
-[hosting guide](../user-guide/control-plane-hosting.md). Read-only target inspection verified Pi SSH access, Debian 13/ARM64, Compose
-and Docker enabled at boot. Subsequent read-only verification confirmed
-memory-cgroup availability and Docker memory/swap support, with a matching
-existing container limit; active/saved boot flags differ. Database DNS/SSH access now works; the tested
-bootstrap initialized the dedicated database/schemas and scoped NOLOGIN roles
-on PostgreSQL 18.6, with ownership and privilege checks passing. Runtime provisioning,
-network/TLS authorization, secret-store integration and controlled host-reboot
-persistence evidence remain pending; local tests do not satisfy those
-operational acceptance gates. No public ingress is added.
+[hosting guide](../user-guide/control-plane-hosting.md). Pi administration,
+Debian 13/ARM64, Compose, Docker startup and memory containment were inspected.
+Active/saved boot flags differ. The admin reports dedicated database ownership,
+LDAP logins, private TLS/network restrictions and secret delivery verified on
+PostgreSQL 18.6. Application startup, backup/restore and controlled host-reboot
+persistence remain acceptance gates. No public ingress is added.
 
 ## Administrator account handoff — November 15
 
@@ -242,6 +239,5 @@ recipes and project `slickflow`, matching the requested rotation registration.
 The admin reports an installed register/deploy/status interface with shared
 cross-host locks, supervised execution and explicit failure fences; use that
 interface rather than one-host locking. Application startup,
-grants, recovery and host restart evidence remain pending. Earlier statements
-that login secrets or account network/TLS setup are unprovisioned are superseded
-by this administrator-reported handoff, not by independent application validation.
+grants, recovery and host restart evidence remain pending. Administrator-reported
+account/coordination evidence is distinct from application validation.

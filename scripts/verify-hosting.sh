@@ -20,9 +20,12 @@ cleanup() {
 trap cleanup EXIT
 chmod 755 "$SLICKFLOW_FIXTURE_DIR"
 mkdir "$SLICKFLOW_FIXTURE_DIR/backups"
-printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/runtime-password"
-# Disposable secret only: Compose bind-backed secrets retain host permissions.
-chmod 444 "$SLICKFLOW_FIXTURE_DIR/runtime-password"
+(umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/runtime-password")
+# Bind-backed secrets retain host ownership; grant only the runtime container user.
+docker run --rm --user 0:0 -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
+  postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 \
+  -c 'chown 10001:10001 /fixture/runtime-password && chmod 400 /fixture/runtime-password'
+
 cat > "$SLICKFLOW_FIXTURE_DIR/pg_hba.conf" <<'HBA'
 local all all trust
 host all postgres all scram-sha-256

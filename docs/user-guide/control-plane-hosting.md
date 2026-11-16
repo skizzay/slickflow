@@ -23,8 +23,9 @@ endpoints, source addresses, secret references and operator commands stay in the
 owner-controlled administrator inventory, not this public guide.
 
 Database maintenance requests go through the existing database admin agent.
-Public ingress and execution remain disabled. Keep PRs draft until required
-operational evidence exists; the deployment pipeline is #113.
+Public ingress and execution remain disabled. A bounded configuration PR can be reviewed and merged without claiming #111
+operational completion. Keep #111 open until its remaining application/recovery
+acceptance is verified; the deployment pipeline is #113.
 
 ## Database bootstrap and identities
 
@@ -170,8 +171,8 @@ Within that coordinated maintenance operation:
 1. Verify the exact approved paired revision and per-host preflight results.
 2. Stop Pi runtime and keep ingress closed.
 3. Have the database admin agent run the matching migration executable on the
-   database server using `compose.migration.yaml` (service `migration`) or its
-   matching standalone JAR, scoped migration credentials and hostname-verified TLS.
+   database server using `compose.migration.yaml` (service `migration`), scoped
+   migration credentials and hostname-verified TLS through the admin wrapper.
 4. On migration/grant failure, preserve data, keep runtime stopped and escalate.
 5. Update/confirm the rotation receiver registration and start only the Pi runtime
    with project `slickflow`; verify status-only health and fresh database access.
@@ -263,3 +264,20 @@ Only the unique disposable project's volumes are deleted by its cleanup.
 Public PR evidence must contain only source/artifact identities, sanitized
 pass/fail outcomes and verification limits. Keep hostnames, addresses, credentials,
 user data, SQL dumps and sensitive execution logs in owner-controlled storage.
+
+## Review and operational acceptance
+
+The #111 implementation PR supplies configuration, scoped migration grants,
+preflight and disposable recovery verification. Its merge does not close #111 or
+assert production acceptance. The admin reports account/TLS/rotation and lock
+interface acceptance independently. Deployment after prerequisite integration
+still requires approved immutable artifacts, remaining resource budgets,
+backup/recovery readiness and a coordinated window. Native application startup,
+actual-runtime rotation, application grants, SlickFlow restore and controlled
+host-restart evidence must be recorded before completing #111.
+
+The configuration separation tests and PostgreSQL 18.6 Maven suite pass locally.
+Disposable packaged migration/replay, DML-only runtime, persistence and isolated
+restore checks pass; these do not substitute for live-host acceptance. The fixture
+password file is owned by UID/GID 10001 with mode 0400 and is removed with the
+unique test fixture; production secrets never enter these tests.
