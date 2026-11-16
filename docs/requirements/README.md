@@ -16,3 +16,5 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 - [Deployable control-plane packaging](../user-guide/control-plane-packaging.md) — #110 artifact identity, ARM64 build and runtime/migration verification contract.
 
 - [Control-plane hosting operations](../user-guide/control-plane-hosting.md) — #111 database/role bootstrap, migrator-owned schemas and runtime grants, recovery and required target evidence.
+
+- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — native PostgreSQL/image verification, trusted-source GHCR publication and digest/run traceability (#112).

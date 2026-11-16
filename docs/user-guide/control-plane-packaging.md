@@ -34,7 +34,8 @@ Two images are produced: `slickflow-runtime:COMMIT-ARCH` and
 `slickflow-migration:COMMIT-ARCH`. Both carry the same full commit in
 `org.opencontainers.image.revision`. The script prints immutable local image IDs,
 platforms and source revisions. Tags are convenient mutable names; select content
-IDs for execution. Registry manifest digests and publication belong to #112.
+IDs for execution. Registry manifest digests and publication follow the [CI guide](control-plane-ci.md)
+under #112; local packaging alone does not publish.
 The source commit timestamp fixes Maven archive timestamps. Builds are repeatable
 from committed source and pinned inputs; bit-identical images across builder
 versions are not guaranteed. There are no automatic dependency upgrades.

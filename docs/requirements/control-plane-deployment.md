@@ -241,3 +241,11 @@ cross-host locks, supervised execution and explicit failure fences; use that
 interface rather than one-host locking. Application startup,
 grants, recovery and host restart evidence remain pending. Administrator-reported
 account/coordination evidence is distinct from application validation.
+
+## CI implementation boundary (#112)
+
+The [CI guide](../user-guide/control-plane-ci.md) defines native PR verification
+and trusted-branch GHCR publication with commit/digest/run records. Publication
+requires both architecture checks; PRs cannot receive publication credentials.
+First successful trusted publication remains acceptance evidence to collect after
+workflow integration. This configuration does not deploy to either host.
