@@ -17,3 +17,5 @@ Planned topics: installation, connecting a repository, approving work, following
 - [Control-plane packaging](control-plane-packaging.md) — matching non-root Java 21 runtime/migration images, immutable source identity and disposable PostgreSQL 18.6 smoke verification (#110).
 
 - [Private control-plane hosting](control-plane-hosting.md) — dedicated shared-database roles, migrator-owned schemas/runtime grants, LDAP/OpenBao credentials, separate Pi runtime/database-server migration hosting and isolated recovery (#111); admin-reported account verification, application acceptance pending.
+
+- [Control-plane CI and publication](control-plane-ci.md) — native PostgreSQL/image verification, trusted-source GHCR publication and digest/run traceability (#112).
