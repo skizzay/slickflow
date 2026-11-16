@@ -11,3 +11,5 @@ Planned topics: installation, connecting a repository, approving work, following
 - [OAuth2 worker authentication](worker-authentication.md) — Spring Boot OAuth2 settings and principal mapping; job endpoints remain unimplemented.
 
 - [Manual plan approval](manual-plan-approval.md) — configure one epic/story pair, issue approval/invalidation commands and understand internal parent preparation.
+
+- [Protected deployment runner probe](protected-runner-probe.md) — manual protected-job probe, exact workflow identity enrollment and admin coordination (#113); no application deployment.
