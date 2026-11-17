@@ -1,5 +1,6 @@
 """Exercise dispatch input handling without invoking any installed launcher."""
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -10,13 +11,41 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / '.github/workflows/deploy-control-plane.yaml'
 
 
+def workflow_script(source):
+    source = source.replace('\r\n', '\n').replace('\r', '\n')
+    lines = source.splitlines(keepends=True)
+    markers = [i for i, line in enumerate(lines)
+               if re.fullmatch(r' *run:\s*\|[-+]?[ \t]*(?:#.*)?', line.rstrip('\r\n'))]
+    if len(markers) != 1:
+        raise ValueError('Expected one literal launcher script in this workflow')
+    start = markers[0]
+    indentation = len(lines[start]) - len(lines[start].lstrip(' '))
+    block = []
+    for line in lines[start + 1:]:
+        if line.strip() and len(line) - len(line.lstrip(' ')) <= indentation:
+            break
+        block.append(line)
+    if not any(line.strip() for line in block):
+        raise ValueError('Launcher script is empty')
+    return textwrap.dedent(''.join(block))
+
+
 class DeploymentWorkflowTest(unittest.TestCase):
     def invoke(self, action, release=''):
-        body = textwrap.dedent(WORKFLOW.read_text().split('        run: |\n', 1)[1])
+        body = workflow_script(WORKFLOW.read_text())
         # Override the Bash builtin so tests capture the fixed invocation only.
         harness = 'exec() { printf "%s\\n" "$@"; }\n' + body
         return subprocess.run(['bash', '-c', harness], capture_output=True, text=True,
                               env=dict(os.environ, ACTION=action, RELEASE_ID=release))
+
+    def test_script_extraction_tolerates_yaml_indentation_and_chomping(self):
+        source = WORKFLOW.read_text()
+        reformatted = textwrap.indent(source, '    ').replace('run: |\n', 'run: |- # literal script\n')
+        self.assertEqual(workflow_script(source), workflow_script(reformatted))
+        self.assertEqual(workflow_script(source), workflow_script(source.replace("\n", "\r\n")))
+        self.assertEqual(workflow_script('run: |\n  echo safe\nnext: value\n'), 'echo safe\n')
+        with self.assertRaises(ValueError):
+            workflow_script('run: |\n  echo one\nrun: |\n  echo two\n')
 
     def test_probe_preserves_existing_fixed_command(self):
         result = self.invoke('probe')

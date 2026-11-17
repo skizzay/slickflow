@@ -43,7 +43,7 @@ jobs:
               exec /usr/local/bin/slickflow-deploy probe
               ;;
             deploy)
-              [[ "$RELEASE_ID" =~ ^[0-9a-f]{32}$ ]] || { echo 'An approved 32-hex release ID is required'; exit 2; }
+              [[ "$RELEASE_ID" =~ ^[0-9a-f]{32}$ ]] || { echo 'An approved 32-character lowercase hex release ID is required'; exit 2; }
               exec /usr/local/bin/slickflow-deploy deploy --release "$RELEASE_ID"
               ;;
             *) echo 'Unsupported maintenance action'; exit 2 ;;
