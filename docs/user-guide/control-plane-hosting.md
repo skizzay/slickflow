@@ -298,3 +298,15 @@ The owner selected reuse of the existing approved homelab backup policy, with
 SlickFlow-specific backup and isolated restore. The admin must return its exact
 retention, custody and recovery limits/evidence before deployment. This choice
 does not mark unperformed live backup/restore or readiness checks passed.
+
+## Initial-release backup exception
+
+The owner deferred backup policy/automation/recovery work to
+[backlog #123](https://github.com/skizzay/slickflow/issues/123); it must not block
+the initial deployment or ingress milestones. The admin controller must record
+an explicit owner-deferred initial-release mode instead of demanding nonexistent
+backup evidence. All other release/approval, source-preservation, closed-ingress,
+locking and health gates still apply. Do not mark deferred restore/backup checks
+passed or delete retained data to satisfy an empty-source condition. See the
+[deployment contract](../requirements/control-plane-deployment.md#owner-directed-initial-backup-deferral)
+for the scope of this owner exception.

@@ -269,3 +269,20 @@ The [CI artifact selector](../user-guide/control-plane-ci.md#verify-a-pair-befor
 rejects incomplete/untrusted publication records before selecting native digests.
 It supplies evidence, not deployment approval. Runner/launcher acceptance,
 remaining budgets, backup readiness and actual deployment are pending.
+
+## Owner-directed initial backup deferral
+
+The owner explicitly deferred backup policy, automation and verified recovery to
+[backlog #123](https://github.com/skizzay/slickflow/issues/123) and instructed that
+this work not block the initial deployment or ingress milestones. For this first
+release, replace the otherwise required backup-policy/evidence gate with an
+explicit owner-deferred mode in the approved controller/release policy. Do not
+invent policy values or report deferred backup/restore checks as passed. This
+exception supersedes the backup prerequisites above for the initial release;
+it does not authorize schema reset, automatic repair or data deletion.
+
+The admin must implement/test that initial-release policy exception and reverify
+the recorded empty application schemas, without emptying a changed source.
+Identity/human approval, exact release/artifacts, resource/capacity, closed ingress,
+shared maintenance locks, migration/health and failure fences remain enforced.
+Backup capability and recovery guarantees remain unverified, not implicit.

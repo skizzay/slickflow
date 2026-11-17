@@ -18,3 +18,5 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 - [Control-plane hosting operations](../user-guide/control-plane-hosting.md) — #111 database/role bootstrap, migrator-owned schemas and runtime grants, recovery and required target evidence.
 
 - [Control-plane CI and publication](../user-guide/control-plane-ci.md) — native PostgreSQL/image verification, trusted-source GHCR publication and digest/run traceability (#112).
+
+- [Backup and recovery backlog #123](https://github.com/skizzay/slickflow/issues/123) — owner-deferred work; explicit initial-release exception is in the [deployment contract](control-plane-deployment.md#owner-directed-initial-backup-deferral).
