@@ -252,13 +252,23 @@ export SLICKFLOW_RUNTIME_IMAGE SLICKFLOW_MIGRATION_IMAGE
 ```
 
 The unique local PostgreSQL 18.6 project uses synthetic data and temporary secrets.
+It layers the disposable database overrides over both production recipes rather
+than duplicating service definitions. Runtime retains its actual tmpfs, secret
+loading, limits and disabled command switches. Migration retains its actual
+secret-reading entrypoint and host networking, connecting only to the fixture's
+random host-loopback database port. Separate protected runtime/migration password
+files use the same disposable fixture value; no production credential is used. Compose v2.24.4 or newer is required for the
+fixture's `!override` port replacement. Quoted tmpfs entries preserve comma-separated
+mount options as one YAML string; startup is verified by Docker, not only config
+rendering.
 It exercises schema-free repeated bootstrap, repeated scoped migration with
 migrator-owned schemas and runtime grants (including future objects), mounted runtime secret loading,
 DML-only startup, role/database restrictions inside the test network, container recreation with
 persistent data, custom-format backup and isolated restore with exact fixture-row
 comparison, and refusal to overwrite production/nonempty targets. Fixture HBA
-uses a private Docker network without TLS; production verify-full TLS, external
-network exposure, Pi startup and real-host reboot are separate required evidence.
+uses a private runtime network and loopback-only database publication without
+TLS; production verify-full TLS, external network exposure, Pi startup and
+real-host reboot are separate required evidence.
 Only the unique disposable project's volumes are deleted by its cleanup.
 
 Public PR evidence must contain only source/artifact identities, sanitized
@@ -281,3 +291,13 @@ Disposable packaged migration/replay, DML-only runtime, persistence and isolated
 restore checks pass; these do not substitute for live-host acceptance. The fixture
 password file is owned by UID/GID 10001 with mode 0400 and is removed with the
 unique test fixture; production secrets never enter these tests.
+
+## Failed deployment and corrected release identity
+
+A recipe/source correction requires a new reviewed source revision, immutable
+publication and independently approved release policy. Do not rerun a revoked
+release or advance a pinned initial-release exception automatically. The admin
+must inspect the failed operation and explicitly reconcile/abort retained fences
+before admitting a new operation; no migration retry, schema reset or repair is
+implicit. Backup work remains owner-deferred under
+[backlog #123](https://github.com/skizzay/slickflow/issues/123), not a passed check.

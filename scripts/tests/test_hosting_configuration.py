@@ -33,6 +33,7 @@ class HostingConfigurationTest(unittest.TestCase):
         self.assertEqual(set(config['services']), {'runtime'})
         self.assertEqual(set(config['secrets']), {'runtime_password'})
         service = config['services']['runtime']
+        self.assertEqual(service['tmpfs'], ['/tmp:size=64m,mode=1777'])
         self.assertEqual(service['ports'][0]['host_ip'], '127.0.0.1')
         self.assertNotIn('network_mode', service)
         self.assertEqual(service['environment']['SLICKFLOW_DB_USER'], 'slickflow_runtime')
@@ -43,6 +44,7 @@ class HostingConfigurationTest(unittest.TestCase):
         self.assertEqual(set(config['services']), {'migration'})
         self.assertEqual(set(config['secrets']), {'migration_password'})
         service = config['services']['migration']
+        self.assertEqual(service['tmpfs'], ['/tmp:size=64m,mode=1777'])
         self.assertEqual(service['network_mode'], 'host')
         self.assertEqual(service['environment']['SLICKFLOW_DB_RUNTIME_ROLE'], 'slickflow_runtime')
         self.assertNotIn('ports', service)
