@@ -249,3 +249,13 @@ and trusted-branch GHCR publication with commit/digest/run records. Publication
 requires both architecture checks; PRs cannot receive publication credentials.
 First successful trusted publication remains acceptance evidence to collect after
 workflow integration. This configuration does not deploy to either host.
+
+## Corrected release after failed execution
+
+A production recipe change must pass actual Docker execution of the production
+Compose service definitions in disposable verification, then use newly reviewed
+immutable source/artifact identities. Existing release revocation and failure
+fences remain authoritative until deliberate admin reconciliation/recovery. Do
+not retry a revoked release or silently advance an initial-only waiver pin. The
+owner deferred backup/recovery work to [#123](https://github.com/skizzay/slickflow/issues/123);
+record that status honestly and preserve the other execution/approval gates.

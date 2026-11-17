@@ -8,7 +8,16 @@ export SLICKFLOW_FIXTURE_DIR SLICKFLOW_FIXTURE_PASSWORD
 SLICKFLOW_FIXTURE_DIR=$(mktemp -d)
 SLICKFLOW_FIXTURE_PASSWORD=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
 project="slickflow-hosting-${RANDOM}-$$"
-compose=(docker compose -f deployment/control-plane/compose.verify.yaml -p "$project")
+# Exercise the deployed recipes, not independently maintained service copies.
+export SLICKFLOW_RUNTIME_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/runtime-password"
+export SLICKFLOW_MIGRATION_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/runtime-password"
+export SLICKFLOW_DB_CA_FILE="$SLICKFLOW_FIXTURE_DIR/ca.crt"
+export SLICKFLOW_DB_URL='jdbc:postgresql://127.0.0.1:1/slickflow?currentSchema=slickflow'
+export SLICKFLOW_CPU_LIMIT=1 SLICKFLOW_MIGRATION_MEMORY=1g
+export SLICKFLOW_FIXTURE_DB_PORT=1
+compose=(docker compose -f deployment/control-plane/compose.yaml \
+  -f deployment/control-plane/compose.migration.yaml \
+  -f deployment/control-plane/compose.verify.yaml -p "$project")
 cleanup() {
   "${compose[@]}" down --volumes --remove-orphans >/dev/null
   # Tools write backup files as root inside only this unique disposable directory.
@@ -20,6 +29,8 @@ cleanup() {
 trap cleanup EXIT
 chmod 755 "$SLICKFLOW_FIXTURE_DIR"
 mkdir "$SLICKFLOW_FIXTURE_DIR/backups"
+# TLS is not exercised by this isolated fixture; the production CA bind still exists.
+printf 'synthetic fixture; not a CA\n' > "$SLICKFLOW_DB_CA_FILE"
 (umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/runtime-password")
 # Bind-backed secrets retain host ownership; grant only the runtime container user.
 docker run --rm --user 0:0 -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
@@ -43,6 +54,8 @@ dbname=slickflow_restore_test
 user=slickflow_migrator
 SERVICES
 "${compose[@]}" up -d --wait db
+address=$("${compose[@]}" port db 5432)
+SLICKFLOW_FIXTURE_DB_PORT=${address##*:}
 for pass in 1 2; do
   "${compose[@]}" exec -T db psql -X -U postgres -d postgres < deployment/control-plane/bootstrap.sql >/dev/null
 done
