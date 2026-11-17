@@ -256,7 +256,8 @@ It layers the disposable database overrides over both production recipes rather
 than duplicating service definitions. Runtime retains its actual tmpfs, secret
 loading, limits and disabled command switches. Migration retains its actual
 secret-reading entrypoint and host networking, connecting only to the fixture's
-random host-loopback database port. Compose v2.24.4 or newer is required for the
+random host-loopback database port. Separate protected runtime/migration password
+files use the same disposable fixture value; no production credential is used. Compose v2.24.4 or newer is required for the
 fixture's `!override` port replacement. Quoted tmpfs entries preserve comma-separated
 mount options as one YAML string; startup is verified by Docker, not only config
 rendering.

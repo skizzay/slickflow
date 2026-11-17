@@ -259,3 +259,7 @@ fences remain authoritative until deliberate admin reconciliation/recovery. Do
 not retry a revoked release or silently advance an initial-only waiver pin. The
 owner deferred backup/recovery work to [#123](https://github.com/skizzay/slickflow/issues/123);
 record that status honestly and preserve the other execution/approval gates.
+
+For the owner-deferred initial deployment, backup/restore status remains deferred
+under [#123](https://github.com/skizzay/slickflow/issues/123); correcting the
+recipe does not reinstate a backup blocker or mark recovery evidence passed.

@@ -10,7 +10,7 @@ SLICKFLOW_FIXTURE_PASSWORD=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
 project="slickflow-hosting-${RANDOM}-$$"
 # Exercise the deployed recipes, not independently maintained service copies.
 export SLICKFLOW_RUNTIME_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/runtime-password"
-export SLICKFLOW_MIGRATION_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/runtime-password"
+export SLICKFLOW_MIGRATION_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/migration-password"
 export SLICKFLOW_DB_CA_FILE="$SLICKFLOW_FIXTURE_DIR/ca.crt"
 export SLICKFLOW_DB_URL='jdbc:postgresql://127.0.0.1:1/slickflow?currentSchema=slickflow'
 export SLICKFLOW_CPU_LIMIT=1 SLICKFLOW_MIGRATION_MEMORY=1g
@@ -31,11 +31,14 @@ chmod 755 "$SLICKFLOW_FIXTURE_DIR"
 mkdir "$SLICKFLOW_FIXTURE_DIR/backups"
 # TLS is not exercised by this isolated fixture; the production CA bind still exists.
 printf 'synthetic fixture; not a CA\n' > "$SLICKFLOW_DB_CA_FILE"
-(umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/runtime-password")
+# Separate paths mirror production credential delivery; values are disposable fixture-only.
+for secret in runtime-password migration-password; do
+  (umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/$secret")
+done
 # Bind-backed secrets retain host ownership; grant only the runtime container user.
 docker run --rm --user 0:0 -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
   postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 \
-  -c 'chown 10001:10001 /fixture/runtime-password && chmod 400 /fixture/runtime-password'
+  -c 'chown 10001:10001 /fixture/runtime-password /fixture/migration-password && chmod 400 /fixture/runtime-password /fixture/migration-password'
 
 cat > "$SLICKFLOW_FIXTURE_DIR/pg_hba.conf" <<'HBA'
 local all all trust
