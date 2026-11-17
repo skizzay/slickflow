@@ -12,4 +12,4 @@ Planned topics: installation, connecting a repository, approving work, following
 
 - [Manual plan approval](manual-plan-approval.md) — configure one epic/story pair, issue approval/invalidation commands and understand internal parent preparation.
 
-- [Protected deployment runner probe](protected-runner-probe.md) — manual protected-job probe, exact workflow identity enrollment and admin coordination (#113); no application deployment.
+- [Protected control-plane maintenance](protected-runner-probe.md) — protected probe/approved-release dispatch, exact identity enrollment, readiness and recovery gates (#113); live deployment pending.
