@@ -5,9 +5,9 @@ Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
 The owner selected the existing Pi, PostgreSQL service and Caddy, approved a
 provisional runtime memory budget, and requested deployment. Memory-limit support
 is verified. The admin reports completed LDAP/OpenBao account provisioning,
-private database DNS/TLS and cross-host maintenance coordination. Application
-initialization and runtime deployment have not occurred; artifact/review gates,
-remaining resource/backup decisions and application acceptance still apply.
+private database DNS/TLS and cross-host maintenance coordination. The admin reports application
+initialization and runtime deployment completed in the supervised backend; further configuration/ingress changes and remaining operational acceptance still
+require reviewed policy and human approval. Backup is owner-deferred under #123.
 
 ## Baseline and integration
 
@@ -263,3 +263,20 @@ record that status honestly and preserve the other execution/approval gates.
 For the owner-deferred initial deployment, backup/restore status remains deferred
 under [#123](https://github.com/skizzay/slickflow/issues/123); correcting the
 recipe does not reinstate a backup blocker or mark recovery evidence passed.
+
+## Current deployment and ingress boundary
+
+The admin reports backend operation completion for corrected artifact revision
+`374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, current Pi loopback health UP,
+registered immutable runtime identity and verified ownership/runtime/default grants.
+Actions run `44942443475` attempt 1 was cancelled; the independently reconciled
+backend outcome must not be replaced by a fabricated Actions success. Obsolete
+queued attempt 3 was cancelled without another runner or migration. Initial-release
+approval is closed and cannot authorize updates to initialized state.
+
+The owner selected `webhooks.slickflow.ai` for #114. Public routing, rate limiting,
+receipt secret delivery and the preserving receipt-only runtime transition are
+not yet configured/verified. Keep execution and workers disabled; do not bypass
+the current closed-ingress/disabled-webhook policy with ad hoc host edits. Review
+that transition through the existing admin/operator and release/identity gates.
+Backup remains deferred under [#123](https://github.com/skizzay/slickflow/issues/123).
