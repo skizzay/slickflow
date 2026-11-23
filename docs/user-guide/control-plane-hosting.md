@@ -227,9 +227,12 @@ requires expected row/constraint checks and a compatible runtime health test. Ke
 the restore isolated until verified, and remove it only by a separate approved
 operator action. A checksum establishes file integrity, not backup authenticity.
 
-Before deployment, approve backup destination/owner, encryption, frequency,
-retention, off-site policy and recovery-time/data-loss budgets; no recurring timer
-or automatic purge is installed. A database volume alone is not backup coverage.
+Backup policy/automation and verified recovery are owner-deferred under
+[#123](https://github.com/skizzay/slickflow/issues/123); do not make them a blocker
+for the initial/ingress milestones or report deferred checks as passed. That
+backlog work must establish destination/owner, encryption, frequency, retention,
+off-site policy and recovery-time/data-loss budgets. No recurring timer or
+automatic purge is installed. A database volume alone is not backup coverage.
 An incompatible pre-release V1 revision blocks startup: preserve required data
 and obtain a human-approved preservation/reinitialization decision. Do not restore
 older application/schema artifacts over live new writes or promise rollback
@@ -284,10 +287,10 @@ The #111 implementation PR supplies configuration, scoped migration grants,
 preflight and disposable recovery verification. Its merge does not close #111 or
 assert production acceptance. The admin reports account/TLS/rotation and lock
 interface acceptance independently. Deployment after prerequisite integration
-still requires approved immutable artifacts, remaining resource budgets,
-backup/recovery readiness and a coordinated window. Native application startup,
-actual-runtime rotation, application grants, SlickFlow restore and controlled
-host-restart evidence must be recorded before completing #111.
+still requires approved immutable artifacts, approved resource budgets and a coordinated window. The admin reports initial
+startup and ownership/runtime/default grants verified; compatible update,
+actual-runtime rotation/reconnect and controlled host-restart acceptance remain.
+Backup/restore is owner-deferred under #123, not a passed acceptance check.
 
 The configuration separation tests and PostgreSQL 18.6 Maven suite pass locally.
 Disposable packaged migration/replay, DML-only runtime, persistence and isolated

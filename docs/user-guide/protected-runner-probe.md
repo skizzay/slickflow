@@ -43,7 +43,8 @@ The database admin agent must enroll the exact reviewed path
 actual merged workflow revision into its admission/OIDC policy. This matches the
 admin tooling. Do not weaken revision matching with a wildcard or substitute a
 PR head. A new workflow revision requires explicit reviewed reenrollment. The
-current successful probe pin does not authorize the extended deployment workflow.
+admin reports main enrollment at `b9c4d9614ecbff826169ec9dd124613500e2416b`.
+Importing its reviewed bytes into the epic does not enroll that branch's identity.
 Enroll each branch separately; do not use a main revision to authorize epic/108.
 
 Before enabling deploy, the owner/admin must approve a complete private release
@@ -54,10 +55,12 @@ revision and deployment-workflow revision are distinct. Private policies, secret
 backup files, controller paths and raw logs remain outside this public repository.
 
 The selected service envelope is 1 CPU and 1 GiB each, with runtime heap 512 MiB.
-Backup retention/custody, RPO/RTO and evidence freshness require explicit owner
-policy; an assumed homelab policy or successful synthetic restore is insufficient.
-Admin must capture and verify compliant current recovery evidence and closed
-ingress before readiness. Initial webhook/execution/inbox/manual-approval/worker
+Backup automation and verified recovery are owner-deferred under
+[#123](https://github.com/skizzay/slickflow/issues/123) and must not block the
+initial/ingress milestones or be reported as passed. Future backup requirements
+need an explicit owner policy; do not infer values from a homelab assumption or
+synthetic restore. Enforce the approved non-deferred release/readiness gates,
+including the reviewed ingress state. Initial webhook/execution/inbox/manual-approval/worker
 switches remain disabled. Missing, stale, expired, revoked or inconsistent release
 and readiness evidence must block deployment.
 
