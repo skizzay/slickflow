@@ -1,11 +1,13 @@
 """Exercise dispatch input handling without invoking any installed launcher."""
 import os
 import re
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / '.github/workflows/deploy-control-plane.yaml'
@@ -36,7 +38,18 @@ class DeploymentWorkflowTest(unittest.TestCase):
         # Override the Bash builtin so tests capture the fixed invocation only.
         harness = 'exec() { printf "%s\\n" "$@"; }\n' + body
         return subprocess.run(['bash', '-c', harness], capture_output=True, text=True,
-                              env=dict(os.environ, ACTION=action, RELEASE_ID=release))
+                              env={'PATH': os.defpath, 'LANG': 'C', 'ACTION': action, 'RELEASE_ID': release})
+
+    def test_caller_shell_startup_files_cannot_execute(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'must-not-exist'
+            startup = Path(directory) / 'startup.sh'
+            startup.write_text('touch ' + shlex.quote(str(marker)) + '\n')
+            with patch.dict(os.environ, {'BASH_ENV': str(startup), 'ENV': str(startup)}):
+                result = self.invoke('probe')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(marker.exists())
+            self.assertEqual(result.stdout.splitlines(), ['/usr/local/bin/slickflow-deploy', 'probe'])
 
     def test_script_extraction_tolerates_yaml_indentation_and_chomping(self):
         source = WORKFLOW.read_text()
@@ -64,7 +77,8 @@ class DeploymentWorkflowTest(unittest.TestCase):
             with self.subTest(action=action):
                 result = self.invoke(action, release)
                 self.assertEqual(result.returncode, 2)
-                self.assertNotIn('/usr/local/bin/slickflow-deploy', result.stdout)
+                self.assertEqual(result.stdout, '')
+                self.assertTrue(result.stderr)
 
     def test_deploy_rejects_missing_malformed_or_shell_input(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -75,7 +89,8 @@ class DeploymentWorkflowTest(unittest.TestCase):
                 with self.subTest(release=release):
                     result = self.invoke('deploy', release)
                     self.assertEqual(result.returncode, 2)
-                    self.assertNotIn('/usr/local/bin/slickflow-deploy', result.stdout)
+                    self.assertEqual(result.stdout, '')
+                    self.assertTrue(result.stderr)
             self.assertFalse(marker.exists())
 
 

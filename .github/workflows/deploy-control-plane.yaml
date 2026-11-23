@@ -39,12 +39,12 @@ jobs:
           set -euo pipefail
           case "$ACTION" in
             probe)
-              [[ -z "$RELEASE_ID" ]] || { echo 'Probe does not accept a release'; exit 2; }
+              [[ -z "$RELEASE_ID" ]] || { echo 'Probe does not accept a release' >&2; exit 2; }
               exec /usr/local/bin/slickflow-deploy probe
               ;;
             deploy)
-              [[ "$RELEASE_ID" =~ ^[0-9a-f]{32}$ ]] || { echo 'An approved 32-character lowercase hex release ID is required'; exit 2; }
+              [[ "$RELEASE_ID" =~ ^[0-9a-f]{32}$ ]] || { echo 'An approved 32-character lowercase hex release ID is required' >&2; exit 2; }
               exec /usr/local/bin/slickflow-deploy deploy --release "$RELEASE_ID"
               ;;
-            *) echo 'Unsupported maintenance action'; exit 2 ;;
+            *) echo 'Unsupported maintenance action' >&2; exit 2 ;;
           esac
