@@ -86,8 +86,9 @@ registration cleanup were independently checked. Admin reports backend/VM cleanu
 negative identity cases include unit coverage rather than every live wrong-claim
 combination. This is probe acceptance, not application deployment.
 
-The admin reports the deploy extension installed and tested with unit/disposable
-fixtures, with live deploy disabled pending approvals. This workflow change is
+The admin reports the deploy extension installed, tested with unit/disposable
+fixtures and exercised for the completed initial release. Further operations need
+a new approved policy; the initial release approval is closed. This workflow change is
 verified by Actionlint and local input-routing tests:
 
 ```sh
@@ -108,7 +109,8 @@ under [#123](https://github.com/skizzay/slickflow/issues/123); do not manufactur
 backup evidence or silently reinstate that blocker. Runner admission is currently
 manual per approved run/attempt, not an installed queue watcher. The future #114
 receipt-only configuration/ingress transition requires explicit policy review;
-the first-deployment policy intentionally forces webhooks off and ingress closed. Record only sanitized release/revision/digests,
+the first-deployment policy intentionally forces webhooks off and ingress closed.
+Record only sanitized release/revision/digests,
 publication/deployment run identities, operation/final phase and acceptance results;
 never upload raw controller/migration logs. A successful job submission alone is
 not a successful deployment.

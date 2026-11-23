@@ -15,10 +15,13 @@ The administrator's November 15 completion report records LDAP-authenticated
 restricted logins, OpenBao secret custody and automated rotation, protected
 consumer files, private DNS and hostname-verified TLS, successful positive/negative
 connection tests and preserved existing-tenant health. These are administrator
-reported results, not application startup evidence. No application migration or
-runtime deployment has occurred; application schemas remain empty. Native runtime
-startup, application grants, SlickFlow backup/restore and host-reboot persistence
-remain pending. An independent Internet port scan was not performed. Private
+reported results, not application startup evidence. The admin reports initial migration and Pi runtime deployment completed at
+artifact `374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, with loopback health UP and
+ownership/runtime/default grants verified. GitHub's cancelled job is not a
+successful Actions result; the backend completion was reconciled independently.
+The initialized source cannot reuse the closed empty-source first-release approval.
+SlickFlow backup/restore remains owner-deferred under #123; compatible update,
+real-runtime rotation/reconnect and host-reboot acceptance remain pending. An independent Internet port scan was not performed. Private
 endpoints, source addresses, secret references and operator commands stay in the
 owner-controlled administrator inventory, not this public guide.
 
