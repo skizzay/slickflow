@@ -282,3 +282,11 @@ not yet configured/verified. Keep execution and workers disabled; do not bypass
 the current closed-ingress/disabled-webhook policy with ad hoc host edits. Review
 that transition through the existing admin/operator and release/identity gates.
 Backup remains deferred under [#123](https://github.com/skizzay/slickflow/issues/123).
+
+The application-side #114 [receipt-only overlay](../user-guide/github-webhooks.md#hosted-receipt-only-configuration-114)
+provides opt-in runtime configuration and disposable signed-delivery checks after
+#113 integration through PR #125. It retains loopback binding, separate signing
+and database secrets, and disabled execution/approval/workers. This configuration
+does not provision the selected hostname or satisfy public TLS, rate-limit,
+origin-security or preserving host-policy acceptance; keep ingress closed until
+those are reviewed and verified. Public health is not selected for #114.

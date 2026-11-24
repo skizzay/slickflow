@@ -26,7 +26,7 @@ endpoints, source addresses, secret references and operator commands stay in the
 owner-controlled administrator inventory, not this public guide.
 
 Database maintenance requests go through the existing database admin agent.
-Public ingress and execution remain disabled. A bounded configuration PR can be reviewed and merged without claiming #111
+Public ingress and execution remain disabled. The optional [receipt-only webhook overlay](github-webhooks.md#hosted-receipt-only-configuration-114) requires a separately reviewed preserving configuration transition; it does not authorize public exposure. A bounded configuration PR can be reviewed and merged without claiming #111
 operational completion. Keep #111 open until its remaining application/recovery
 acceptance is verified; the deployment pipeline is #113.
 

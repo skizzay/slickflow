@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+webhooks=false
+case "${1:-}" in
+  '') ;;
+  --webhooks) webhooks=true ;;
+  *) echo "Usage: $0 [--webhooks]" >&2; exit 2 ;;
+esac
 : "${SLICKFLOW_RUNTIME_IMAGE:?immutable runtime image required}"
 : "${SLICKFLOW_MIGRATION_IMAGE:?immutable migration image required}"
 export SLICKFLOW_RUNTIME_IMAGE SLICKFLOW_MIGRATION_IMAGE
@@ -17,7 +23,14 @@ export SLICKFLOW_CPU_LIMIT=1 SLICKFLOW_MIGRATION_MEMORY=1g
 export SLICKFLOW_FIXTURE_DB_PORT=1
 compose=(docker compose -f deployment/control-plane/compose.yaml \
   -f deployment/control-plane/compose.migration.yaml \
-  -f deployment/control-plane/compose.verify.yaml -p "$project")
+  )
+if [[ "$webhooks" == true ]]; then
+  compose+=(-f deployment/control-plane/compose.webhook.yaml)
+  export SLICKFLOW_WEBHOOK_SECRET_FILE="$SLICKFLOW_FIXTURE_DIR/webhook-secret"
+  export SLICKFLOW_FIXTURE_WEBHOOK_SECRET
+  SLICKFLOW_FIXTURE_WEBHOOK_SECRET=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
+fi
+compose+=(-f deployment/control-plane/compose.verify.yaml -p "$project")
 cleanup() {
   "${compose[@]}" down --volumes --remove-orphans >/dev/null
   # Tools write backup files as root inside only this unique disposable directory.
@@ -35,10 +48,13 @@ printf 'synthetic fixture; not a CA\n' > "$SLICKFLOW_DB_CA_FILE"
 for secret in runtime-password migration-password; do
   (umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/$secret")
 done
+if [[ "$webhooks" == true ]]; then
+  (umask 077; printf %s "$SLICKFLOW_FIXTURE_WEBHOOK_SECRET" > "$SLICKFLOW_WEBHOOK_SECRET_FILE")
+fi
 # Bind-backed secrets retain host ownership; grant only the runtime container user.
 docker run --rm --user 0:0 -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
   postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 \
-  -c 'chown 10001:10001 /fixture/runtime-password /fixture/migration-password && chmod 400 /fixture/runtime-password /fixture/migration-password'
+  -c 'chown 10001:10001 /fixture/runtime-password /fixture/migration-password && chmod 400 /fixture/runtime-password /fixture/migration-password; if [ -f /fixture/webhook-secret ]; then chown 10001:10001 /fixture/webhook-secret && chmod 400 /fixture/webhook-secret; fi'
 
 cat > "$SLICKFLOW_FIXTURE_DIR/pg_hba.conf" <<'HBA'
 local all all trust
@@ -110,6 +126,18 @@ health() {
   echo 'Runtime health verification failed' >&2; return 1
 }
 health
+if [[ "$webhooks" == true ]]; then
+  address=$("${compose[@]}" port runtime 8080)
+  python3 scripts/verify_hosted_webhooks.py "http://$address"
+  classified=false
+  for ((attempt=0; attempt<30; attempt++)); do
+    counts=$("${compose[@]}" exec -T db psql -XAt -U postgres -d slickflow -c \
+      "SELECT (SELECT count(*) FROM slickflow.webhook_inbox), (SELECT count(*) FROM slickflow.webhook_event WHERE event_kind IN ('PING','ISSUE')), (SELECT count(*) FROM slickflow.job), (SELECT count(*) FROM slickflow.workflow_run), (SELECT count(*) FROM slickflow.workflow_source_delivery)")
+    if [[ "$counts" == '2|2|0|0|0' ]]; then classified=true; break; fi
+    sleep 1
+  done
+  [[ "$classified" == true ]] || { echo 'Receipt-only classification/persistence check failed' >&2; exit 1; }
+fi
 "${compose[@]}" run --rm -T tools psql -h db -U slickflow_runtime -d slickflow -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
 SELECT count(*) FROM slickflow.repository;
 DO $$

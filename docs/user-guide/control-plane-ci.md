@@ -90,3 +90,10 @@ GitHub; local simulations alone do not complete #112. A bounded implementation
 PR may merge to enable the first trusted run; leave #112 open until the published
 pair and gate behavior are verified. Deployment pipeline #113 and native Pi
 startup/real database initialization remain separate acceptance work.
+
+Receipt-only ingress configuration (#114) is also checked with
+`./scripts/verify-hosting.sh --webhooks` on each native architecture before
+publication, in addition to the disabled-webhook fixture. This exercises the
+production overlay and synthetic HMAC receipt/classification with no dispatch;
+it does not establish public TLS/rate limiting or live GitHub acceptance. See the
+[webhook hosting contract](github-webhooks.md#hosted-receipt-only-configuration-114).
