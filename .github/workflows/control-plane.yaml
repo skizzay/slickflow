@@ -49,6 +49,7 @@ jobs:
           export SLICKFLOW_MIGRATION_IMAGE=$(docker image inspect "slickflow-migration:$revision-$ARCH" --format '{{.Id}}')
           ./scripts/verify-packaging.sh
           ./scripts/verify-hosting.sh
+          ./scripts/verify-hosting.sh --webhooks
 
   publish:
     name: Publish (${{ matrix.arch }})
@@ -86,6 +87,7 @@ jobs:
           export SLICKFLOW_MIGRATION_IMAGE=$(docker image inspect "slickflow-migration:$revision-$ARCH" --format '{{.Id}}')
           ./scripts/verify-packaging.sh
           ./scripts/verify-hosting.sh
+          ./scripts/verify-hosting.sh --webhooks
       - name: Authenticate publication only
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}

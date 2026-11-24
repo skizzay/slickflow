@@ -6,7 +6,7 @@ Planned topics: installation, connecting a repository, approving work, following
 
 - [Local control-plane bootstrap](local-control-plane.md) — migrate the database, run the local health endpoint and optionally enable approved execution and configured signed-event dispatch; includes project identity and preservation of existing local resources.
 
-- [GitHub webhook inbox](github-webhooks.md) — enable signed delivery ingestion and inspect processing status.
+- [GitHub webhook inbox](github-webhooks.md) — enable signed delivery ingestion and inspect processing status; includes the optional receipt-only hosting overlay, secret delivery and pending admin ingress gates (#114).
 
 - [OAuth2 worker authentication](worker-authentication.md) — Spring Boot OAuth2 settings and principal mapping; job endpoints remain unimplemented.
 

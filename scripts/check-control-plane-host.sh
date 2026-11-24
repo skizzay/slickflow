@@ -2,7 +2,13 @@
 set -euo pipefail
 # Read-only checks; never alter kernel settings, pull images or start services.
 role=${1:-runtime}
-case "$role" in runtime|migration) ;; *) echo "Usage: $0 [runtime|migration]" >&2; exit 2 ;; esac
+webhooks=false
+case "$role" in
+  runtime-webhook) role=runtime; webhooks=true ;;
+  runtime|migration) ;;
+  *) echo "Usage: $0 [runtime|runtime-webhook|migration]" >&2; exit 2 ;;
+esac
+export SLICKFLOW_PREFLIGHT_WEBHOOKS="$webhooks"
 export SLICKFLOW_PREFLIGHT_ROLE="$role"
 python3 - <<'PY'
 import os, re, stat
@@ -24,7 +30,10 @@ require(q.get('currentSchema')==['slickflow'] and q.get('sslmode')==['verify-ful
         q.get('sslrootcert')==['/run/trust/postgresql-ca.crt'] and
         not any(k.lower() in ('user','password','sslpassword') for k in q),
         'Require slickflow schema and verify-full TLS with the mounted CA; no URL credentials')
-for key in ('SLICKFLOW_'+role.upper()+'_PASSWORD_FILE',):
+secret_keys=['SLICKFLOW_'+role.upper()+'_PASSWORD_FILE']
+if os.environ['SLICKFLOW_PREFLIGHT_WEBHOOKS']=='true':
+    secret_keys.append('SLICKFLOW_WEBHOOK_SECRET_FILE')
+for key in secret_keys:
     p=os.getenv(key,''); require(os.path.isabs(p) and os.path.isfile(p), key+' must select an existing private file')
     s=os.stat(p)
     require(not s.st_mode & 0o007 and
@@ -65,5 +74,9 @@ revision=$(docker image inspect "$selected_image" --format '{{index .Config.Labe
 [[ $(docker image inspect "$selected_image" --format '{{.Architecture}} {{.Config.User}}') == "$image_arch 10001:10001" ]] || {
   echo 'Image must match host architecture and use non-root UID/GID 10001' >&2; exit 1;
 }
-docker compose -f "$(dirname "$0")/../deployment/control-plane/$recipe" config --quiet
+compose=(docker compose -f "$(dirname "$0")/../deployment/control-plane/$recipe")
+if [[ "$webhooks" == true ]]; then
+  compose+=(-f "$(dirname "$0")/../deployment/control-plane/compose.webhook.yaml")
+fi
+"${compose[@]}" config --quiet
 printf 'Local %s configuration checks passed at revision %s; verify matching remote revision and admin maintenance protocol before use.\n' "$role" "$revision"
