@@ -5,9 +5,10 @@ Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
 The owner selected the existing Pi, PostgreSQL service and Caddy, approved a
 provisional runtime memory budget, and requested deployment. Memory-limit support
 is verified. The admin reports completed LDAP/OpenBao account provisioning,
-private database DNS/TLS and cross-host maintenance coordination. Application
-initialization and runtime deployment have not occurred; artifact/review gates,
-remaining resource/backup decisions and application acceptance still apply.
+private database DNS/TLS and cross-host maintenance coordination. The admin reports
+application initialization and runtime deployment completed in the supervised
+backend; further configuration/ingress changes and remaining acceptance still
+require reviewed policy and human approval. Backup is owner-deferred under #123.
 
 ## Baseline and integration
 
@@ -33,17 +34,17 @@ publishing its sensitive details.
 
 | Decision | Proposal | Approval / verification |
 |---|---|---|
-| Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Authorized November 9 inspection reconfirmed OS/architecture and existing Forgejo; Pi model undocumented; SlickFlow runtime/userspace checks pending |
-| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and restricted LDAP logins verified by admin; application migration pending |
+| Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Authorized November 9 inspection reconfirmed OS/architecture and existing Forgejo; Pi model undocumented; admin reports native runtime startup and loopback health UP |
+| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and restricted LDAP logins verified by admin; admin reports application migration and ownership/runtime/default grants verified |
 | Capacity | Provisional runtime budget of 1 GiB including a 512 MiB heap (`-Xmx512m`); no workers | Owner approved budget; Read-only verification now confirms Docker memory/swap limit support and an existing container limit matching its cgroup; SlickFlow peak usage remains unmeasured and active/saved boot flags differ |
 | Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | Admin reports private access restrictions verified; SlickFlow backup coverage and application persistence acceptance pending |
 | Access | Existing administration plus restricted cross-host maintenance interface | Admin reports SlickFlow-specific TLS/LDAP/source restrictions and positive/negative tests passed |
-| Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; fresh versions and runtime support checks pending |
-| Registry | GHCR with commit-linked immutable digests | Proposed; visibility, access and retention pending |
+| Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; admin reports native runtime deployed; host-restart acceptance pending |
+| Registry | GHCR with commit-linked immutable digests | Native publication and selected anonymous digest access verified; image-retention policy pending |
 | Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
 | DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
 | Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
-| Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | Environment name, approvers, repository-plan support and runner placement pending |
+| Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | control-plane-production requires owner review with admin bypass disabled; isolated per-attempt runner admission is manual |
 | Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
 
 Inventory sources: the [owner review on PR #116](https://github.com/skizzay/slickflow/pull/116#issuecomment-6754501694)
@@ -232,14 +233,15 @@ files and positive/negative access verification. Runtime credentials belong only
 on the Pi; migration credentials belong only on the database server. The admin
 runs the matching application migration executable there, not on the Pi.
 Certificate selection/renewal follows the admin recommendation. Existing tenants
-remain unchanged; no application initialization/deployment occurred.
+remain unchanged; admin reports the subsequent initial application deployment
+completed as recorded below.
 
 The [hosting guide](../user-guide/control-plane-hosting.md) defines the separate
 recipes and project `slickflow`, matching the requested rotation registration.
 The admin reports an installed register/deploy/status interface with shared
 cross-host locks, supervised execution and explicit failure fences; use that
-interface rather than one-host locking. Application startup,
-grants, recovery and host restart evidence remain pending. Administrator-reported
+interface rather than one-host locking. Admin reports runtime startup/grants
+verified; compatible update/recovery and host-restart evidence remain pending. Administrator-reported
 account/coordination evidence is distinct from application validation.
 
 ## CI implementation boundary (#112)
@@ -263,3 +265,20 @@ record that status honestly and preserve the other execution/approval gates.
 For the owner-deferred initial deployment, backup/restore status remains deferred
 under [#123](https://github.com/skizzay/slickflow/issues/123); correcting the
 recipe does not reinstate a backup blocker or mark recovery evidence passed.
+
+## Current deployment and ingress boundary
+
+The admin reports backend operation completion for corrected artifact revision
+`374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, current Pi loopback health UP,
+registered immutable runtime identity and verified ownership/runtime/default grants.
+Actions run `44942443475` attempt 1 was cancelled; the independently reconciled
+backend outcome must not be replaced by a fabricated Actions success. Obsolete
+queued attempt 3 was cancelled without another runner or migration. Initial-release
+approval is closed and cannot authorize updates to initialized state.
+
+The owner selected `webhooks.slickflow.ai` for #114. Public routing, rate limiting,
+receipt secret delivery and the preserving receipt-only runtime transition are
+not yet configured/verified. Keep execution and workers disabled; do not bypass
+the current closed-ingress/disabled-webhook policy with ad hoc host edits. Review
+that transition through the existing admin/operator and release/identity gates.
+Backup remains deferred under [#123](https://github.com/skizzay/slickflow/issues/123).

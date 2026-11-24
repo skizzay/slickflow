@@ -1,0 +1,50 @@
+# Reviewed launcher contract template; application team must review/merge and reenroll its exact SHA.
+name: Control-plane protected maintenance
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Protected maintenance action
+        required: true
+        type: choice
+        default: probe
+        options: [probe, deploy]
+      release:
+        description: Approved release ID (required for deploy)
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: slickflow-production-deployment
+  cancel-in-progress: false
+jobs:
+  maintenance:
+    if: >-
+      github.repository == 'skizzay/slickflow' &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/epic/108')
+    environment: control-plane-production
+    runs-on: [self-hosted, linux, x64, slickflow-deploy]
+    timeout-minutes: 45
+    steps:
+      - name: Validate and invoke the fixed protected launcher
+        shell: bash
+        env:
+          ACTION: ${{ inputs.action }}
+          RELEASE_ID: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          case "$ACTION" in
+            probe)
+              [[ -z "$RELEASE_ID" ]] || { echo 'Probe does not accept a release' >&2; exit 2; }
+              exec /usr/local/bin/slickflow-deploy probe
+              ;;
+            deploy)
+              [[ "$RELEASE_ID" =~ ^[0-9a-f]{32}$ ]] || { echo 'An approved 32-character lowercase hex release ID is required' >&2; exit 2; }
+              exec /usr/local/bin/slickflow-deploy deploy --release "$RELEASE_ID"
+              ;;
+            *) echo 'Unsupported maintenance action' >&2; exit 2 ;;
+          esac

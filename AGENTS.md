@@ -43,6 +43,7 @@ to scope source inspection; a repository-wide scan is not the onboarding path.
 | Deployable runtime/migration images, revision identity and packaging smoke checks | [Control-plane packaging](docs/user-guide/control-plane-packaging.md) |
 | Native CI checks, trusted artifact publication, registry access and reruns | [Control-plane CI](docs/user-guide/control-plane-ci.md) |
 | Private host/database bootstrap, runtime secrets, restart and recovery | [Control-plane hosting](docs/user-guide/control-plane-hosting.md) |
+| Protected probe/approved-release deployment, identity enrollment and recovery gates | [Protected control-plane maintenance](docs/user-guide/protected-runner-probe.md) |
 | Local build, verification and runtime commands | [Local control plane](docs/user-guide/local-control-plane.md) |
 | Evidence behind a design decision or experiment reproduction | [Research index](docs/research/README.md) — historical evidence, not the current specification |
 

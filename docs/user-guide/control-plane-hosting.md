@@ -15,10 +15,13 @@ The administrator's November 15 completion report records LDAP-authenticated
 restricted logins, OpenBao secret custody and automated rotation, protected
 consumer files, private DNS and hostname-verified TLS, successful positive/negative
 connection tests and preserved existing-tenant health. These are administrator
-reported results, not application startup evidence. No application migration or
-runtime deployment has occurred; application schemas remain empty. Native runtime
-startup, application grants, SlickFlow backup/restore and host-reboot persistence
-remain pending. An independent Internet port scan was not performed. Private
+reported results, not application startup evidence. The admin reports initial migration and Pi runtime deployment completed at
+artifact `374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, with loopback health UP and
+ownership/runtime/default grants verified. GitHub's cancelled job is not a
+successful Actions result; the backend completion was reconciled independently.
+The initialized source cannot reuse the closed empty-source first-release approval.
+SlickFlow backup/restore remains owner-deferred under #123; compatible update,
+real-runtime rotation/reconnect and host-reboot acceptance remain pending. An independent Internet port scan was not performed. Private
 endpoints, source addresses, secret references and operator commands stay in the
 owner-controlled administrator inventory, not this public guide.
 
@@ -224,9 +227,12 @@ requires expected row/constraint checks and a compatible runtime health test. Ke
 the restore isolated until verified, and remove it only by a separate approved
 operator action. A checksum establishes file integrity, not backup authenticity.
 
-Before deployment, approve backup destination/owner, encryption, frequency,
-retention, off-site policy and recovery-time/data-loss budgets; no recurring timer
-or automatic purge is installed. A database volume alone is not backup coverage.
+Backup policy/automation and verified recovery are owner-deferred under
+[#123](https://github.com/skizzay/slickflow/issues/123); do not make them a blocker
+for the initial/ingress milestones or report deferred checks as passed. That
+backlog work must establish destination/owner, encryption, frequency, retention,
+off-site policy and recovery-time/data-loss budgets. No recurring timer or
+automatic purge is installed. A database volume alone is not backup coverage.
 An incompatible pre-release V1 revision blocks startup: preserve required data
 and obtain a human-approved preservation/reinitialization decision. Do not restore
 older application/schema artifacts over live new writes or promise rollback
@@ -281,10 +287,10 @@ The #111 implementation PR supplies configuration, scoped migration grants,
 preflight and disposable recovery verification. Its merge does not close #111 or
 assert production acceptance. The admin reports account/TLS/rotation and lock
 interface acceptance independently. Deployment after prerequisite integration
-still requires approved immutable artifacts, remaining resource budgets,
-backup/recovery readiness and a coordinated window. Native application startup,
-actual-runtime rotation, application grants, SlickFlow restore and controlled
-host-restart evidence must be recorded before completing #111.
+still requires approved immutable artifacts, approved resource budgets and a coordinated window. The admin reports initial
+startup and ownership/runtime/default grants verified; compatible update,
+actual-runtime rotation/reconnect and controlled host-restart acceptance remain.
+Backup/restore is owner-deferred under #123, not a passed acceptance check.
 
 The configuration separation tests and PostgreSQL 18.6 Maven suite pass locally.
 Disposable packaged migration/replay, DML-only runtime, persistence and isolated

@@ -52,7 +52,10 @@ under [#108](https://github.com/skizzay/slickflow/issues/108): confirm target an
 operating decisions (#109), package runtime/migrator (#110), provision private
 persistence/hosting (#111), verify/publish artifacts (#112), approved deployment
 (#113), HTTPS ingress (#114), then live receipt/restart evidence (#115).
-Target confirmation and actual deployment remain pending. This path uses the
+Native artifact publication and admin-reported supervised runtime deployment are
+complete; GitHub's deployment job was cancelled, so successful Actions execution
+is not claimed. Exact workflow integration into the epic is required before #114.
+HTTPS webhook ingress and live receipt/restart evidence remain pending. This path uses the
 merged bootstrap/inbox baseline and does not require worker execution or the full
 Execution epic. Live webhook classification alone does not complete Milestone 1
 or authorize issue-to-PR automation.
