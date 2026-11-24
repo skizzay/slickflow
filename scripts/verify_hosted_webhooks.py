@@ -25,7 +25,13 @@ def main():
             headers.update(extra)
         connection = http.client.HTTPConnection(target.hostname, target.port, timeout=10)
         try:
-            connection.request(method, path, body, headers)
+            try:
+                connection.request(method, path, body, headers)
+            except BrokenPipeError:
+                # A server may reject Content-Length before consuming all bytes.
+                # Still require its actual HTTP response to be exactly 413.
+                if expected != 413:
+                    raise
             response = connection.getresponse()
             response.read()
             if response.status != expected:
@@ -43,7 +49,7 @@ def main():
     request(401, signature=False)
     request(401, extra={'X-Hub-Signature-256': 'sha256=' + '0' * 64})
     request(415, extra={'Content-Encoding': 'gzip'})
-    request(413, extra={'Content-Length': '1048577'})
+    request(413, body=b' ' * 1048577)
     print('PASS: synthetic signed receipt, retry/conflict, issue, signature and encoding checks')
 
 
