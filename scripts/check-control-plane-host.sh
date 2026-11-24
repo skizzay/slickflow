@@ -2,6 +2,7 @@
 set -euo pipefail
 # Read-only checks; never alter kernel settings, pull images or start services.
 role=${1:-runtime}
+requested_role=$role
 webhooks=false
 case "$role" in
   runtime-webhook) role=runtime; webhooks=true ;;
@@ -79,4 +80,4 @@ if [[ "$webhooks" == true ]]; then
   compose+=(-f "$(dirname "$0")/../deployment/control-plane/compose.webhook.yaml")
 fi
 "${compose[@]}" config --quiet
-printf 'Local %s configuration checks passed at revision %s; verify matching remote revision and admin maintenance protocol before use.\n' "$role" "$revision"
+printf 'Local %s configuration checks passed at revision %s; verify matching remote revision and admin maintenance protocol before use.\n' "$requested_role" "$revision"
