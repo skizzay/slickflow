@@ -1,61 +1,93 @@
 # Roadmap
 
-Target throughput: 4–6 epics/week across multiple repositories, 6–8 stories/epic. These are capacity targets, not demonstrated throughput.
+The active roadmap consists of three **proposed Epics awaiting owner review**.
+No child stories are planned or authorized until that review. Epic creation,
+backlog cleanup and this document do not approve implementation, deployment,
+execution activation or merge.
 
-## Milestone 1 — Vertical slice
-Approved test story -> webhook -> durable job -> local Docker Codex worker -> story branch -> tests -> pull request. Single repository and one active job. No autonomous merging.
+| Order | Epic | Intended outcome |
+|---|---|---|
+| 1 | [#128 — Live control plane, no registered workflows](https://github.com/skizzay/slickflow/issues/128) | A healthy deployed service supports an empty workflow registry and does not seed definitions on startup/restart. |
+| 2 | [#129 — Register/unregister project-defined workflows](https://github.com/skizzay/slickflow/issues/129) | Authorized workflow lifecycle operations with project ownership, validation, version identity and preserved history; registration starts no execution. |
+| 3 | [#130 — Trigger execution and advance the next step](https://github.com/skizzay/slickflow/issues/130) | Start or resume the correct registered workflow/run safely, using a trigger model to be discussed with the owner before story breakdown. |
 
-## Milestone 2 — Epic planning
-Structured issue templates; acceptance-criteria coverage; dependency DAG with cycle detection; explicit human plan approval; epic branch creation.
+## Integrated deployment baseline
 
-## Milestone 3 — Dependency-aware execution
-Global/repo/epic concurrency controls; branch freshness checks; leases, heartbeats, retries and worker recovery; downstream dispatch only after prerequisite merge.
+[PR #132](https://github.com/skizzay/slickflow/pull/132) merged the delivered
+`epic/108` baseline into `main` at
+`c5086d00953b16170fae1ccab4ba3473e589681b`. Packaging, native CI, hosting,
+persistence grants and receipt-only ingress configuration are retained. This
+roadmap change follows that integration; it does not replace the delivered code.
+The prior deployment tracker is historical integration evidence, not a fourth
+new goal or renewed story plan.
 
-## Milestone 4 — Review loop
-Ordered QA → specialist reviewer-agent reviews → human review; webhook-triggered developer remediation restarting at QA; separate durable feedback capture; two-attempt default limit and escalation. Feedback-driven skill improvement requires evaluated, human-approved changes; concrete delivery slices remain to be scheduled.
+## Goal 1 — Live control plane with no registered workflows
 
-## Milestone 5 — Integration and release
-Epic acceptance verification, architecture review, final epic PR to main, human merge approval and release preparation.
+Reuse the deployed Spring Boot/PostgreSQL foundation and accepted live webhook
+receipt/classification evidence. A webhook can be stored and classified without
+registering a workflow or starting work. Keep execution disabled.
 
-## Milestone 6 — Operations and portability
-Pause/resume/cancel, telemetry, AI and compute cost reporting, security hardening, cloud worker compatibility testing.
+A healthy service with execution disabled is not proof that the workflow registry
+is empty: the current [persistence bootstrap](../architecture/control-plane-persistence.md)
+registers a packaged definition. Verify both application registration and engine
+definition inventory, and support normal startup/restart with zero registered
+workflows. Preserve retained data and history; this planning reset authorizes no
+live deletion, schema reset, workflow removal or configuration change.
 
-## First sprint tasks
-1. Spring Boot skeleton and database migrations.
-2. GitHub App webhook receiver with signature verification and durable inbox.
-3. Job and worker API contract.
-4. Java polling worker with lease and heartbeat.
-5. Disposable Docker Codex execution image and safe credential handling.
-6. Test story -> branch -> PR end-to-end demonstration.
+## Goal 2 — Workflow registration and unregistration
 
-Each task must specify dependencies, acceptance criteria, verification, and completion evidence.
+Each project owns its workflow definition and toolchain steps. Different C++, Java,
+Python and mixed-language projects can use different sequences without requiring a
+new control-plane implementation per project. Reusable activities/templates may
+be shared. SlickFlow Developer is project-independent.
 
-## Feasibility checkpoint — 2026-10-22
+Agree the definition/source contract, registration interface, authorized actors,
+validation/version semantics and the effect of unregistration on referenced
+versions/history/runs during Epic review. Unregistration does not imply destructive
+engine-history deletion. Registering or unregistering a workflow does not execute
+it; unregistering the last one leaves a healthy service.
 
-[Issue #18](https://github.com/skizzay/slickflow/issues/18) is closed with an
-accepted bounded research result; see the [synthesis](../research/issue-18-results.md).
-PR #21 is retained as an unmerged experiment archive, not a production dependency.
-Bootstrap, webhook inbox, lifecycle guards and worker OAuth2 authentication are
-implemented. The current delivery sequence is manual plan approval (#46), pinned
-event-to-job creation (#47), then atomic worker claiming (#39). Approval alone
-does not dispatch work; prerequisite PRs must still integrate into the Execution
-epic before being treated as satisfied. #13 still owns scoped GitHub credential and provider operational
-validation; #11 owns the actual approved-issue-to-PR demonstration; #15 owns real
-GitHub reconciliation. Milestone 1 is not complete. No new generic Flowable POC
-is required; use the existing evidence while implementing and testing those stories.
-Research acceptance does not waive human epic approval or implementation merge gates.
+## Goal 3 — Start and advance execution
 
-## Initial live operations — #108
+Discuss the trigger model with the owner before defining stories: manual commands,
+APIs, events or webhooks are choices, not settled requirements. Decide start versus
+resume behavior, workflow/version/run/activity correlation, verified activity
+completion, approvals, initial executor and failure/retry/cancellation semantics.
+Flowable remains the architecture's sequencing boundary; workers execute assigned
+activities. An issue or agent assertion cannot manufacture approval or verified
+operational completion.
 
-Prioritize the bounded [control-plane deployment contract](control-plane-deployment.md)
-under [#108](https://github.com/skizzay/slickflow/issues/108): confirm target and
-operating decisions (#109), package runtime/migrator (#110), provision private
-persistence/hosting (#111), verify/publish artifacts (#112), approved deployment
-(#113), HTTPS ingress (#114), then live receipt/restart evidence (#115).
-Native artifact publication and admin-reported supervised runtime deployment are
-complete; GitHub's deployment job was cancelled, so successful Actions execution
-is not claimed. Exact workflow integration into the epic is required before #114.
-HTTPS webhook ingress and live receipt/restart evidence remain pending. This path uses the
-merged bootstrap/inbox baseline and does not require worker execution or the full
-Execution epic. Live webhook classification alone does not complete Milestone 1
-or authorize issue-to-PR automation.
+The longer-term direction includes distinct SlickFlow Developer and Skizzay SRE
+identities serving multiple projects, with project-owned workflows and durable
+request/result coordination that removes manual developer/admin document handoffs.
+This is retained direction, not a requirement to build a complete autonomous
+issue-to-PR/SRE platform in the first execution slice. Project configuration cannot
+grant credentials or bypass approval, execution isolation or human merge authority.
+
+## Review and delivery policy
+
+Review the three Epic outcomes, exclusions, decisions and ordering first. Create
+stories only after the owner has reviewed the corresponding Epic and agreed its
+scope. Historical stories are reference material, not an approved delivery plan or
+automatically satisfied dependencies. Reuse verified existing implementation;
+check actual integration before relying on it. Preserve small reviewable changes,
+meaningful tests, necessary documentation and human merge gates.
+
+## Deferred concerns and evidence limits
+
+Broader worker/Codex execution, branch/PR publication, planning/DAG scheduling,
+review/remediation, feedback/skill learning, release automation, cloud adapters and
+branding work are outside the immediate Epic-only roadmap unless explicitly
+reprioritized. Backup remains owner-deferred and is not a restored MVP blocker.
+Portable operating roles/break-glass design, host-reboot, rotation and recovery
+acceptance remain future concerns, without unperformed checks being marked passed.
+
+The owner accepts the live receipt/classification service as the receipt MVP.
+This does not establish an empty registry, full issue-to-PR automation, every
+previous operational acceptance criterion. The completed #108 epic-to-main
+integration is recorded separately above.
+
+The [2026-11-26 consolidation record](../research/roadmap-reset-2026-11-26.md)
+preserves the retired issue map and earlier roadmap. Closed superseded issues are
+not completed-feature evidence. Existing architecture/contract documents describe
+implemented capabilities or longer-term proposed design, not extra active Epics.

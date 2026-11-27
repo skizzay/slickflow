@@ -2,6 +2,7 @@
 
 Investigations, feasibility experiments, findings and unresolved questions belong here. Distinguish proposed ideas from verified evidence.
 
+- [Roadmap consolidation — 2026-11-26](roadmap-reset-2026-11-26.md) — retired issue map and preserved earlier roadmap; active priorities are in requirements.
 - [Initial architecture review](architecture-review-2026-10-13.md)
 - [Issue #18 results and synthesis](issue-18-results.md) — completed and blocked experiments.
 - [Real Codex local experiment](real-codex-local-experiment.md) — authorized ChatGPT sign-in, Java coding/testing, and local review.
