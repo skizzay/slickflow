@@ -31,7 +31,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Validate and invoke the fixed protected launcher
-        shell: bash
+        # Strip noninteractive startup hooks before Bash itself starts.
+        shell: env -u BASH_ENV -u ENV bash --noprofile --norc -e -o pipefail {0}
         env:
           ACTION: ${{ inputs.action }}
           RELEASE_ID: ${{ inputs.release }}
