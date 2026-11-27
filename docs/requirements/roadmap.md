@@ -1,13 +1,14 @@
 # Roadmap
 
-The active roadmap consists of three **proposed Epics awaiting owner review**.
-No child stories are planned or authorized until that review. Epic creation,
+The active roadmap has three goal-level Epics. **#128 has been reviewed for story
+breakdown; #129 and #130 still await owner review and have no stories.**
+Child stories are created only after the corresponding owner review. Epic creation,
 backlog cleanup and this document do not approve implementation, deployment,
 execution activation or merge.
 
 | Order | Epic | Intended outcome |
 |---|---|---|
-| 1 | [#128 — Live control plane, no registered workflows](https://github.com/skizzay/slickflow/issues/128) | A healthy deployed service supports an empty workflow registry and does not seed definitions on startup/restart. |
+| 1 | [#128 — Live control plane, no registered workflows](https://github.com/skizzay/slickflow/issues/128) | A main-built release is actually deployed and healthy with an empty workflow registry; startup/restart does not seed definitions. |
 | 2 | [#129 — Register/unregister project-defined workflows](https://github.com/skizzay/slickflow/issues/129) | Authorized workflow lifecycle operations with project ownership, validation, version identity and preserved history; registration starts no execution. |
 | 3 | [#130 — Trigger execution and advance the next step](https://github.com/skizzay/slickflow/issues/130) | Start or resume the correct registered workflow/run safely, using a trigger model to be discussed with the owner before story breakdown. |
 
@@ -33,6 +34,20 @@ registers a packaged definition. Verify both application registration and engine
 definition inventory, and support normal startup/restart with zero registered
 workflows. Preserve retained data and history; this planning reset authorizes no
 live deletion, schema reset, workflow removal or configuration change.
+
+### Goal1 delivery breakdown
+
+The owner authorized eight small stories under #128: delivery/release rules #133,
+workflow-free startup #134, main-only publication #135, release verification #136,
+live inventory/preservation plan #137, deployment authorization #138, actual main
+release publication #139, and live rollout/empty-registry readback #140. Exact
+acceptance/dependencies remain in those issues and their native parent links.
+
+Reviewed implementation lands through story → epic → main. Then a verified main
+release is published and separately authorized for deployment. Keep the Epic open
+through live acceptance; it need not be closed before its main release can exist.
+Creating these stories or merging planning guidance does not approve a production
+operation or choose the pending release naming/version convention.
 
 ## Goal 2 — Workflow registration and unregistration
 

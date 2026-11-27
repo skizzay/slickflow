@@ -6,6 +6,12 @@ Architecture: Spring Boot orchestrator + PostgreSQL; Java polling worker; isolat
 
 For every change: read relevant architecture and roadmap documents; link the GitHub issue; identify dependencies; implement the smallest coherent change; add/update tests; document verification and tradeoffs in the PR.
 
+Aim to keep each story small: one observable, independently reviewable outcome with explicit dependencies and exclusions. Split independent scope before coding; keep atomic invariants and meaningful tests together. Code and documentation must match in the same PR.
+
+Every example code snippet added to or changed in documentation must have a unit test that exercises the exact documented snippet or its shared tested source. This includes command, configuration and SQL examples, not just Java. A separately copied similar example, syntax/lint check or link check alone is insufficient. Keep tests isolated from production and secrets; supplement them with integration checks where needed.
+
+Default branch flow: create an epic branch from reviewed `main`; create each story branch from the associated epic branch. Story PRs merge back into that epic branch, and the final epic PR merges back into `main`. Do not create a story branch from `main` or target a different base by habit. Explicit instructions may override these defaults for an edge case; record the instruction and actual source/target in the issue/PR. An override does not silently waive human approval, review or security constraints.
+
 When creating a PR, request a review from @copilot using GitHub’s reviewer-request mechanism. For draft PRs, request the review when marking them ready. Verify the request was accepted; if unavailable or rejected, report that explicitly. Copilot review does not replace required human approval.
 
 Create child stories only after the owner has reviewed the corresponding Epic and agreed its scope. Never bypass human epic approval or final epic-to-main approval. Never auto-merge on an agent's assertion alone. Never treat a story dependency as satisfied until its PR has merged into the epic branch. Never expose Docker host socket to an untrusted development container. Escalate uncertain review feedback; cap remediation attempts.

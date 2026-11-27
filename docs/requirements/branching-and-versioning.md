@@ -1,8 +1,13 @@
 # Main-only GitFlow and semantic versions
 
-Proposed workflow contract under [#100](https://github.com/skizzay/slickflow/issues/100).
-The [BPMN/Mermaid reference](../architecture/workflow-reference.md) illustrates it;
-runtime branching, release and hotfix handlers are not implemented by this model.
+The default branch policy below follows the owner's instructions under
+[Epic #128](https://github.com/skizzay/slickflow/issues/128), delivery rules
+[#133](https://github.com/skizzay/slickflow/issues/133). The versioning/release and
+hotfix design retained from [#100](https://github.com/skizzay/slickflow/issues/100)
+remains proposed where not separately approved. The
+[BPMN/Mermaid reference](../architecture/workflow-reference.md) depicts that broader
+proposed process, including optional release/hotfix branches; it does not override
+the default branch flow or implement runtime branch/release handlers.
 
 ## Branches and release identities
 
@@ -13,13 +18,29 @@ Supporting branches are temporary and use exact approved commit bases:
 |---|---|---|
 | `epic/ISSUE` | Approved, current `main` commit | Coordinate approved child stories and acceptance checks |
 | `feature/EPIC-STORY` | Fresh approved epic head | Merge into that epic after verified review/tests and human merge approval |
-| `release/X.Y.Z` | Tested and approved epic head, after release-version classification | Final release PR into `main`; only release stabilization changes belong here |
-| `hotfix/X.Y.Z` | Approved latest released `main` commit, identified by its immutable tag | Urgent compatible bug-fix PR directly into `main`, without creating an epic |
+| `release/X.Y.Z` | Only under explicit instructions for a release-staging edge case | Alternative staging path, never an automatic step in the default Epic flow |
+| `hotfix/X.Y.Z` | Only under explicit instructions, from an approved released `main` commit | Proposed urgent-fix exception; scope/base/target need explicit approval |
 
-Normal delivery is main → epic → feature → epic → release → main. The release
-branch takes the place of GitFlow's preparation step without a persistent develop
-branch. These names are the proposed workflow convention; this documentation
-change does not rename existing repository branches or change current PR targets.
+Default delivery is main → epic → story → epic → main. Epic branches start
+from reviewed main; story branches start from the associated epic. Every PR
+returns to its base: story to epic, final epic to main. Verify the actual source
+revision and target instead of assuming that a similarly named branch is correct.
+
+Explicit instructions can override the default for an identified edge case, such
+as an integration synchronization, documentation-only route or separately approved
+hotfix/release-staging flow. Record the instruction and actual base/target in the
+issue/PR. Merely mentioning an alternative here is not an instruction to use it;
+no override silently bypasses human review, merge or security requirements.
+
+Keep stories small and independently reviewable, with matching code and canonical
+documentation in the same PR. Every documentation code example added or changed
+requires a unit test of that exact snippet or shared tested source. Syntax/lint
+and link validation alone do not replace that test.
+
+Production releases for Goal1 must be built from reviewed main, after integration,
+and consumed through verified immutable source/build/artifact identities. An Epic
+artifact does not become eligible merely because its commit later enters main.
+Keep the Epic open through the main-release/live-deployment acceptance phase.
 
 Choose the release version from the actual reviewed public-API change:
 backward-incompatible changes increment MAJOR, backward-compatible functionality

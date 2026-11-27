@@ -19,6 +19,9 @@ labels: []
 ## Epic dependencies
 <!-- Link outcome-level prerequisites; do not preselect implementation stories. -->
 
+## Branch plan
+<!-- Default: this epic starts from reviewed main and merges back to main. Each small story starts from this epic and merges back into it. Record explicit edge-case overrides. -->
+
 ## Child stories
 <!-- Leave empty until owner review. Then agree the breakdown with explicit dependencies. -->
 
