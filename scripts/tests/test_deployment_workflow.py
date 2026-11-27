@@ -1,11 +1,13 @@
 """Exercise dispatch input handling without invoking any installed launcher."""
 import os
 import re
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / '.github/workflows/deploy-control-plane.yaml'
@@ -31,12 +33,48 @@ def workflow_script(source):
 
 
 class DeploymentWorkflowTest(unittest.TestCase):
-    def invoke(self, action, release=''):
-        body = workflow_script(WORKFLOW.read_text())
-        # Override the Bash builtin so tests capture the fixed invocation only.
-        harness = 'exec() { printf "%s\\n" "$@"; }\n' + body
-        return subprocess.run(['bash', '-c', harness], capture_output=True, text=True,
-                              env=dict(os.environ, ACTION=action, RELEASE_ID=release))
+    def invoke(self, action, release='', startup_env=None):
+        source = WORKFLOW.read_text()
+        body = workflow_script(source)
+        shells = re.findall(r'^ +shell: *(.+?) *$', source, re.MULTILINE)
+        self.assertEqual(len(shells), 1)
+        shell = shlex.split(shells[0])
+        if shell == ['bash']:
+            shell += ['--noprofile', '--norc', '-e', '-o', 'pipefail', '{0}']
+        self.assertEqual(shell.count('{0}'), 1)
+        # Capture the fixed invocation without invoking an installed launcher.
+        # Also verify startup-hook variables are absent from the running shell.
+        harness = ('[[ ! ${BASH_ENV+x} && ! ${ENV+x} ]] || exit 98\n'
+                   'exec() { printf "%s\\n" "$@"; }\n' + body)
+        env = {'PATH': os.defpath, 'LANG': 'C', 'ACTION': action, 'RELEASE_ID': release}
+        env.update(startup_env or {})
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'dispatch.sh'
+            script.write_text(harness)
+            return subprocess.run([str(script) if part == '{0}' else part for part in shell],
+                                  capture_output=True, text=True, env=env)
+
+    def test_workflow_shell_removes_startup_hooks_before_bash_starts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'must-not-exist'
+            startup = Path(directory) / 'startup.sh'
+            startup.write_text('touch ' + shlex.quote(str(marker)) + '\n')
+            result = self.invoke('probe', startup_env={'BASH_ENV': str(startup),
+                                                      'ENV': str(startup)})
+            self.assertFalse(marker.exists(), 'Bash sourced a startup file before dispatch')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(), ['/usr/local/bin/slickflow-deploy', 'probe'])
+
+    def test_caller_shell_startup_files_cannot_execute(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'must-not-exist'
+            startup = Path(directory) / 'startup.sh'
+            startup.write_text('touch ' + shlex.quote(str(marker)) + '\n')
+            with patch.dict(os.environ, {'BASH_ENV': str(startup), 'ENV': str(startup)}):
+                result = self.invoke('probe')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(marker.exists())
+            self.assertEqual(result.stdout.splitlines(), ['/usr/local/bin/slickflow-deploy', 'probe'])
 
     def test_script_extraction_tolerates_yaml_indentation_and_chomping(self):
         source = WORKFLOW.read_text()
@@ -64,7 +102,8 @@ class DeploymentWorkflowTest(unittest.TestCase):
             with self.subTest(action=action):
                 result = self.invoke(action, release)
                 self.assertEqual(result.returncode, 2)
-                self.assertNotIn('/usr/local/bin/slickflow-deploy', result.stdout)
+                self.assertEqual(result.stdout, '')
+                self.assertTrue(result.stderr)
 
     def test_deploy_rejects_missing_malformed_or_shell_input(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -75,7 +114,8 @@ class DeploymentWorkflowTest(unittest.TestCase):
                 with self.subTest(release=release):
                     result = self.invoke('deploy', release)
                     self.assertEqual(result.returncode, 2)
-                    self.assertNotIn('/usr/local/bin/slickflow-deploy', result.stdout)
+                    self.assertEqual(result.stdout, '')
+                    self.assertTrue(result.stderr)
             self.assertFalse(marker.exists())
 
 

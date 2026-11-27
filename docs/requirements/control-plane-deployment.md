@@ -1,0 +1,292 @@
+# Initial control-plane deployment contract
+
+Tracks [epic #108](https://github.com/skizzay/slickflow/issues/108) and
+[target story #109](https://github.com/skizzay/slickflow/issues/109).
+The owner selected the existing Pi, PostgreSQL service and Caddy, approved a
+provisional runtime memory budget, and requested deployment. Memory-limit support
+is verified. The admin reports completed LDAP/OpenBao account provisioning,
+private database DNS/TLS and cross-host maintenance coordination. The admin reports
+application initialization and runtime deployment completed in the supervised
+backend; further configuration/ingress changes and remaining acceptance still
+require reviewed policy and human approval. Backup is owner-deferred under #123.
+
+## Baseline and integration
+
+The initial source baseline is main commit
+`0b364db6ea0aa0a13804186fd306e1d9f488ba18`. Its ancestry includes bootstrap
+[PR #22](https://github.com/skizzay/slickflow/pull/22), merge `7fa6fa2`, and
+verified inbox [PR #23](https://github.com/skizzay/slickflow/pull/23), merge `0e51840`.
+Both merge commits were verified as ancestors of `epic/108` using Git.
+
+`epic/108` starts at that baseline. Child branches use `feature/108-STORY`,
+created from the latest epic head, and their PRs target `epic/108`.
+The first branch is `feature/108-109`. No child dependency is satisfied until its
+PR merges into this epic. Final integration into main requires human approval.
+The request to start #108 authorizes this planning work; it does not approve
+unknown target/access/cost decisions or authorize a live deployment.
+
+## Target decision record
+
+Record only sanitized facts here. Keep hostnames, private addresses, account
+identifiers, access instructions and credentials in an owner-controlled private
+inventory/secret store. Public evidence may say that access was verified without
+publishing its sensitive details.
+
+| Decision | Proposal | Approval / verification |
+|---|---|---|
+| Runtime host | Existing Raspberry Pi, Debian 13 / ARM64 | Authorized November 9 inspection reconfirmed OS/architecture and existing Forgejo; Pi model undocumented; admin reports native runtime startup and loopback health UP |
+| Database host | Shared PostgreSQL 18.6 on separate Ubuntu Server 26.10 / x86-64 host | Owner-approved upgrade completed November 9; existing Authentik/Forgejo verified; Dedicated SlickFlow database/schemas and restricted LDAP logins verified by admin; admin reports application migration and ownership/runtime/default grants verified |
+| Capacity | Provisional runtime budget of 1 GiB including a 512 MiB heap (`-Xmx512m`); no workers | Owner approved budget; Read-only verification now confirms Docker memory/swap limit support and an existing container limit matching its cgroup; SlickFlow peak usage remains unmeasured and active/saved boot flags differ |
+| Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | Admin reports private access restrictions verified; SlickFlow backup coverage and application persistence acceptance pending |
+| Access | Existing administration plus restricted cross-host maintenance interface | Admin reports SlickFlow-specific TLS/LDAP/source restrictions and positive/negative tests passed |
+| Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; admin reports native runtime deployed; host-restart acceptance pending |
+| Registry | GHCR with commit-linked immutable digests | Native publication and selected anonymous digest access verified; image-retention policy pending |
+| Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
+| DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
+| Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
+| Deployment | Manual dispatch of an exact verified commit to an approved GitHub environment | control-plane-production requires owner review with admin bypass disabled; isolated per-attempt runner admission is manual |
+| Cost | No new paid services without separate approval | Hosting, registry, storage/backup and network limits require confirmation |
+
+Inventory sources: the [owner review on PR #116](https://github.com/skizzay/slickflow/pull/116#issuecomment-6754501694)
+and subsequent owner-authorized operational inspection, PostgreSQL upgrade and
+acceptance on November 9, 2026 (November 10 UTC). OpenBao verification dates to
+November 2. Private hostnames, addresses, access details and recovery material
+remain in the owner-controlled inventory; this record contains sanitized facts.
+The infrastructure maintenance approval does not authorize SlickFlow provisioning
+or deployment.
+
+The deployment spans two hosts. The Pi's retained PostgreSQL 17 instance is for
+retired-service data/rollback and is not the selected SlickFlow database. Shared
+PostgreSQL memory/storage belong to the remote host, outside the Pi allocation.
+Existing tenants must remain isolated; provision SlickFlow-specific database,
+schemas, DDL/DML roles and source/HBA restrictions. Existing Forgejo TLS access
+and successful database/files backup/isolated restore do not verify SlickFlow
+connectivity or backup coverage. Recurring/off-site backup policy is outstanding.
+The development/test default remains PostgreSQL 17.11. Under #110, all 90
+SlickFlow tests and full Maven verify/package passed against disposable PostgreSQL
+18.6 on amd64, plus packaged migration/replay and DML-only runtime health. This
+verifies local compatibility, not production TLS/HBA authorization or ARM64
+execution. Native ARM64 image smoke checks remain required before deployment.
+Do not silently change test pins or the shared database version.
+
+The owner reports roughly 3 GB freed on the Pi by retiring an existing service;
+November 9 inspection found about 7.1 GiB available RAM and 98 GiB free storage
+on the Pi, plus about 28 GiB available RAM and 77 GiB free storage on the database
+host. These are dated availability snapshots; repeat them before deployment and
+measure SlickFlow under representative load. The approved 1 GiB budget includes
+heap and native overhead. Read-only verification now confirms memory-cgroup
+availability, Docker memory/swap support and a matching existing container limit.
+Active boot arguments still contain both disable/enable memory flags while the
+saved configuration contains only enable; the administrator should reconcile
+that discrepancy. `-Xmx512m` caps only heap. Caddy, the tunnel and OS have separate Pi
+memory needs. Migration memory remains to be measured and budgeted for serialized
+maintenance. Validate startup and representative webhook traffic before claiming
+a measured requirement; zero Docker stats is not evidence of zero memory usage.
+
+### Verified infrastructure upgrade and remaining operational work
+
+The shared PostgreSQL service was upgraded from 16.15 to **18.6** using a new
+volume after coordinated backups and quiescing existing application writes.
+Exact restored table contents, application role password hashes, ownership and
+ACLs matched the source. Existing database credentials, LDAP identities, tokens
+and application secrets were preserved. Private publication, source/database/role
+HBA restrictions and hostname-verified TLS remain in place; the certificate sync
+was updated for PostgreSQL 18's versioned data directory and its timer is active.
+
+Live acceptance covered Authentik core/worker/LDAP health, directory search, real
+Pi Forgejo connections over verify-full TLS 1.3, existing package tokens,
+package reads/publication/cleanup, and unchanged denial of unrelated Pi-to-database
+SSH/HTTPS. The owner accepted browser sign-ins. Existing public package ingress
+was reopened and verified through HTTPS with an existing scoped token.
+A fresh coordinated PostgreSQL 18/files backup restored into isolated PostgreSQL,
+Authentik and Forgejo copies; exact data, pg_amcheck, readiness, existing login/token
+and package hashes passed. This evidence covers existing services only.
+
+The original PostgreSQL 16 volume and final migration backups remain retained.
+New writes make rollback a deliberate preservation/reconciliation decision.
+Recurring/off-site backup scheduling and retention, a controlled real-host reboot
+test, and eventual retirement of retained PostgreSQL 16 data remain separate
+follow-ups. No deletion or host reboot was performed. These completed operations
+do not provision SlickFlow, satisfy its backup/restore or connectivity gates, or
+approve its deployment. Pi memory containment is now verified by the later read-only inspection;
+active/saved boot argument differences remain for administrator reconciliation.
+
+### SlickFlow-specific remaining gates
+
+Reuse specifically the Pi Caddy, not the separate database-host Caddy used for
+private Authentik/OpenBao HTTPS. Proposed ingress is Cloudflare Tunnel → Pi Caddy
+→ runtime. Verify/select the exact public route and origin access/transport,
+certificate ownership/renewal and rate-limit enforcement before exposure. Existing
+Pi Caddy does not establish public TLS ownership. No second proxy is planned.
+The admin manages OpenBao custody and restricted runtime credential delivery;
+this does not expose controller or migration credentials to runtime.
+
+Before actual provisioning/deployment, the owner must approve remaining operating
+decisions and an authorized operator must recheck the target inventory. Record inspection date, sanitized
+OS/architecture/RAM/free-storage facts, tool versions and pass/fail access results.
+Do not infer target characteristics from the development machine. If access is
+unavailable, retain explicit unverified status and keep dependent implementation
+blocked. GitHub environment approval availability must be checked; if unavailable,
+select an equivalent explicit human gate before implementing deployment.
+
+## Bounded deployment requirements
+
+Only the existing modular Spring Boot/Flowable runtime and a dedicated database
+on the selected remote PostgreSQL 18.6 service are in scope. Reuse Pi Caddy
+behind the existing Cloudflare Tunnel as the proposed ingress path;
+a second proxy is not planned. Rate-limit enforcement must be verified before
+public exposure. Enable signed webhook ingestion and asynchronous classification; expose
+status-only health. Explicitly keep `slickflow.execution.enabled`,
+`slickflow.execution.inbox.enabled`, `slickflow.manual-approval.enabled` and
+`slickflow.worker.enabled` false. No worker, execution container, GitHub write,
+OAuth provider or autonomous merge is required. See the
+[inbox architecture](../architecture/webhook-inbox.md) for implemented behavior.
+
+Publish matching runtime and migration executables from the same tested commit,
+with artifact digests and pipeline-run provenance. Verify with real PostgreSQL
+before publication; select the target image platform only after inventory.
+Deploy only the approved source commit/artifacts, never a floating tag. Limit
+initial operation to one runtime on the Pi and one dedicated remote database. The provisional
+runtime memory budget above is approved; approve remaining CPU, migration-memory,
+disk, backup retention and ingress-rate budgets before provisioning. Exceeding a
+budget or requiring a paid resource holds deployment for an owner decision.
+
+PostgreSQL stays on a private network without a public port. Permit only HTTPS
+POST `/webhooks/github` and the deliberately selected status-only health route;
+deny other routes at ingress. Preserve signed raw bytes and required headers,
+reject invalid certificates, bound request size and rate, and avoid body/header
+logging. Receipt-only validation needs a webhook signing secret, not a GitHub App
+private key or write token. Keep the Docker socket out of untrusted containers.
+
+## Maintenance, failure and preservation
+
+Serialize the entire deployment/maintenance operation per environment, including
+manual operations. Quiesce ingress and stop runtime before schema maintenance.
+Use a DDL migration identity for the separate `-migrate.jar`, followed by a
+separate DML-only runtime identity. Inject secrets without tracked files, literal
+command arguments or sensitive logs. Both executables use the same database URL
+with dedicated `currentSchema` and matching engine schema; see
+[persistence ownership](../architecture/control-plane-persistence.md).
+
+Preserve data before maintenance and verify a bounded backup/restore drill in an
+isolated database before relying on recovery. Restart tests must prove persistence
+across application and host restart. Define backup ownership, frequency, retention,
+restore-time/data-loss limits and a private storage destination before deployment.
+A volume alone is not a backup. Do not treat the development Compose administrator
+or disposable test volumes as deployment configuration.
+
+There is one pre-release V1 schema, with no revision-to-revision upgrade path.
+Checksum/schema incompatibility blocks deployment. Never clean, repair or recreate
+the database automatically. Preserve required data and obtain explicit human
+approval for any reinitialization. Application rollback is permitted only after
+verifying schema and registered-workflow compatibility; it is not promised across
+incompatible V1 revisions.
+
+A migration, startup or health failure fails the pipeline and leaves ingress
+closed. Report sanitized status and retain artifact identity for diagnosis; never
+publish successful deployment status after failed verification. Keep incompatible
+runtime stopped, preserve the database, and require an operator recovery decision.
+Later ingress verification must check HMAC rejection, committed 202 receipts,
+idempotent 200 redelivery and asynchronous classification with sanitized UUID/SQL
+evidence; no raw payloads or sensitive logs belong in public evidence.
+
+## Delivery and completion gates
+
+#109 has no child-story dependencies. After its approved contract merges:
+#110 packages artifacts, while #111 provisions persistence/hosting; #112 follows
+#110, #113 follows #111 and #112, #114 adds HTTPS ingress, and #115 records live
+receipt/restart evidence. None is completed by this planning document.
+
+Verification for #109 is review of the approved decision record against actual
+host inspection and baseline ancestry. Documentation/link checks verify the
+written contract only; they do not establish host readiness. Operational runbooks
+for deploy, inspection, redelivery, restart, backup/restore, ingress shutdown,
+rotation and recovery must accompany their implementing stories. This milestone
+proves receipt/classification, not Milestone 1 issue-to-PR automation.
+
+## Implemented packaging boundary
+
+[#110](https://github.com/skizzay/slickflow/issues/110) supplies matching JRE-only
+runtime/migration images from one archived source revision, pinned base digests,
+non-root identities and a disposable PostgreSQL 18.6 image smoke check. See
+[build/run and verification instructions](../user-guide/control-plane-packaging.md).
+Packaging does not publish artifacts, provision services or authorize deployment.
+
+## Hosting configuration boundary
+
+[#111](https://github.com/skizzay/slickflow/issues/111) supplies repeatable dedicated
+database/role bootstrap (without schema creation), migrator-owned schemas and
+repeatable post-migration runtime grants, remote-database Compose hosting, a read-only preflight
+and private backup/isolated-restore tools. See the
+[hosting guide](../user-guide/control-plane-hosting.md). Pi administration,
+Debian 13/ARM64, Compose, Docker startup and memory containment were inspected.
+Active/saved boot flags differ. The admin reports dedicated database ownership,
+LDAP logins, private TLS/network restrictions and secret delivery verified on
+PostgreSQL 18.6. Application startup, backup/restore and controlled host-reboot
+persistence remain acceptance gates. No public ingress is added.
+
+## Administrator account handoff — November 15
+
+Under #111 the database admin agent reports completed LDAP account activation,
+OpenBao custody/automated rotation, private DNS/TLS, separate protected consumer
+files and positive/negative access verification. Runtime credentials belong only
+on the Pi; migration credentials belong only on the database server. The admin
+runs the matching application migration executable there, not on the Pi.
+Certificate selection/renewal follows the admin recommendation. Existing tenants
+remain unchanged; admin reports the subsequent initial application deployment
+completed as recorded below.
+
+The [hosting guide](../user-guide/control-plane-hosting.md) defines the separate
+recipes and project `slickflow`, matching the requested rotation registration.
+The admin reports an installed register/deploy/status interface with shared
+cross-host locks, supervised execution and explicit failure fences; use that
+interface rather than one-host locking. Admin reports runtime startup/grants
+verified; compatible update/recovery and host-restart evidence remain pending. Administrator-reported
+account/coordination evidence is distinct from application validation.
+
+## CI implementation boundary (#112)
+
+The [CI guide](../user-guide/control-plane-ci.md) defines native PR verification
+and trusted-branch GHCR publication with commit/digest/run records. Publication
+requires both architecture checks; PRs cannot receive publication credentials.
+First successful trusted publication remains acceptance evidence to collect after
+workflow integration. This configuration does not deploy to either host.
+
+## Corrected release after failed execution
+
+A production recipe change must pass actual Docker execution of the production
+Compose service definitions in disposable verification, then use newly reviewed
+immutable source/artifact identities. Existing release revocation and failure
+fences remain authoritative until deliberate admin reconciliation/recovery. Do
+not retry a revoked release or silently advance an initial-only waiver pin. The
+owner deferred backup/recovery work to [#123](https://github.com/skizzay/slickflow/issues/123);
+record that status honestly and preserve the other execution/approval gates.
+
+For the owner-deferred initial deployment, backup/restore status remains deferred
+under [#123](https://github.com/skizzay/slickflow/issues/123); correcting the
+recipe does not reinstate a backup blocker or mark recovery evidence passed.
+
+## Current deployment and ingress boundary
+
+The admin reports backend operation completion for corrected artifact revision
+`374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, current Pi loopback health UP,
+registered immutable runtime identity and verified ownership/runtime/default grants.
+Actions run `44942443475` attempt 1 was cancelled; the independently reconciled
+backend outcome must not be replaced by a fabricated Actions success. Obsolete
+queued attempt 3 was cancelled without another runner or migration. Initial-release
+approval is closed and cannot authorize updates to initialized state.
+
+The owner selected `webhooks.slickflow.ai` for #114. Public routing, rate limiting,
+receipt secret delivery and the preserving receipt-only runtime transition are
+not yet configured/verified. Keep execution and workers disabled; do not bypass
+the current closed-ingress/disabled-webhook policy with ad hoc host edits. Review
+that transition through the existing admin/operator and release/identity gates.
+Backup remains deferred under [#123](https://github.com/skizzay/slickflow/issues/123).
+
+The application-side #114 [receipt-only overlay](../user-guide/github-webhooks.md#hosted-receipt-only-configuration-114)
+provides opt-in runtime configuration and disposable signed-delivery checks after
+#113 integration through PR #125. It retains loopback binding, separate signing
+and database secrets, and disabled execution/approval/workers. This configuration
+does not provision the selected hostname or satisfy public TLS, rate-limit,
+origin-security or preserving host-policy acceptance; keep ingress closed until
+those are reviewed and verified. Public health is not selected for #114.

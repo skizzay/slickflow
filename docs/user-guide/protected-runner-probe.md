@@ -14,7 +14,10 @@ repository on `main` or `epic/108`. Its job requires environment
 `slickflow-deploy`. Contents/Actions permissions are read-only; OIDC token issuance
 is enabled for the approved job. There is no checkout, secret retrieval or
 approval automation. Dispatch expressions enter environment variables, never
-shell source. The fixed commands are:
+shell source. The shell invocation removes `BASH_ENV` and `ENV` before Bash
+starts, and disables profile/rc startup files; clearing them in the script body
+would be too late. Regression checks invoke this configured shell with synthetic
+startup hooks and verify they cannot execute. The fixed commands are:
 
 ```text
 /usr/local/bin/slickflow-deploy probe
@@ -43,7 +46,8 @@ The database admin agent must enroll the exact reviewed path
 actual merged workflow revision into its admission/OIDC policy. This matches the
 admin tooling. Do not weaken revision matching with a wildcard or substitute a
 PR head. A new workflow revision requires explicit reviewed reenrollment. The
-current successful probe pin does not authorize the extended deployment workflow.
+admin reports main enrollment at `b9c4d9614ecbff826169ec9dd124613500e2416b`.
+Importing its reviewed bytes into the epic does not enroll that branch's identity.
 Enroll each branch separately; do not use a main revision to authorize epic/108.
 
 Before enabling deploy, the owner/admin must approve a complete private release
@@ -54,10 +58,12 @@ revision and deployment-workflow revision are distinct. Private policies, secret
 backup files, controller paths and raw logs remain outside this public repository.
 
 The selected service envelope is 1 CPU and 1 GiB each, with runtime heap 512 MiB.
-Backup retention/custody, RPO/RTO and evidence freshness require explicit owner
-policy; an assumed homelab policy or successful synthetic restore is insufficient.
-Admin must capture and verify compliant current recovery evidence and closed
-ingress before readiness. Initial webhook/execution/inbox/manual-approval/worker
+Backup automation and verified recovery are owner-deferred under
+[#123](https://github.com/skizzay/slickflow/issues/123) and must not block the
+initial/ingress milestones or be reported as passed. Future backup requirements
+need an explicit owner policy; do not infer values from a homelab assumption or
+synthetic restore. Enforce the approved non-deferred release/readiness gates,
+including the reviewed ingress state. Initial webhook/execution/inbox/manual-approval/worker
 switches remain disabled. Missing, stale, expired, revoked or inconsistent release
 and readiness evidence must block deployment.
 
@@ -86,17 +92,31 @@ registration cleanup were independently checked. Admin reports backend/VM cleanu
 negative identity cases include unit coverage rather than every live wrong-claim
 combination. This is probe acceptance, not application deployment.
 
-The admin reports the deploy extension installed and tested with unit/disposable
-fixtures, with live deploy disabled pending approvals. This workflow change is
+The admin reports the deploy extension installed, tested with unit/disposable
+fixtures and exercised for the completed initial release. Further operations need
+a new approved policy; the initial release approval is closed. This workflow change is
 verified by Actionlint and local input-routing tests:
 
 ```sh
 python3 -m unittest discover -s scripts/tests -p test_deployment_workflow.py -v
 ```
 
-No live deploy has run. Actual migration, native Pi runtime startup, health,
-permissions, compatible recovery and production persistence acceptance remain
-required under #113/#111. Record only sanitized release/revision/digests,
+The admin reports the corrected initial deployment completed in the supervised
+backend at artifact revision `374b4d1bc3a5629f0bfe5065eee12ec64f5e8c5f`, with Pi
+loopback health UP and ownership/runtime/default grants verified. GitHub run
+`44942443475` attempt 1 was cancelled; do not describe it as a successful Actions
+job. The backend completion was reconciled independently, and obsolete queued
+attempt 3 was cancelled without admitting another runner. Initial-release approval
+is closed; do not replay it against the now-initialized database.
+
+Compatible update/recovery, real-runtime rotation/reconnect and host-restart
+acceptance remain separate checks under #113/#111. Backup remains owner-deferred
+under [#123](https://github.com/skizzay/slickflow/issues/123); do not manufacture
+backup evidence or silently reinstate that blocker. Runner admission is currently
+manual per approved run/attempt, not an installed queue watcher. The future #114
+receipt-only configuration/ingress transition requires explicit policy review;
+the first-deployment policy intentionally forces webhooks off and ingress closed.
+Record only sanitized release/revision/digests,
 publication/deployment run identities, operation/final phase and acceptance results;
 never upload raw controller/migration logs. A successful job submission alone is
 not a successful deployment.

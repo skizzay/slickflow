@@ -17,6 +17,12 @@ bootstrap. PostgreSQL remains on the research major with current maintenance fix
 Compatibility is tested here; these pins do not establish Pi capacity, legal
 clearance or a complete security/deployment review. Re-evaluate patches before deployment.
 
+The development PostgreSQL default remains 17.11. The #110 packaging work also
+verifies all 90 existing tests and full Maven verify/package against disposable
+PostgreSQL 18.6 on amd64. Packaged migration/replay and DML-only runtime health
+pass on 18.6. See [packaging verification](../user-guide/control-plane-packaging.md)
+for reproduction and ARM64/production-connectivity limits.
+
 Sources checked for this implementation:
 [Flowable 8 release](https://github.com/flowable/flowable-engine/releases/tag/flowable-8.0.0),
 [Boot 4.0 requirements](https://docs.spring.io/spring-boot/4.0/system-requirements.html),
@@ -240,3 +246,32 @@ worker and other GitHub routes do not exist yet.
 The local Docker command binds inside its container and publishes only host loopback.
 No external identity service, tunnel or Docker host socket is configured. The
 execution plane remains a separate Java controller and isolated job containers.
+
+## Private hosting and recovery boundary
+
+The [#111 hosting recipe](../user-guide/control-plane-hosting.md) supplies scoped
+non-superuser migrator/runtime roles and a dedicated database on the existing
+remote service. Bootstrap creates the database/roles only; the standalone migrator
+creates and owns both schemas through Flyway, then applies runtime grants after
+Flowable maintenance when `SLICKFLOW_DB_RUNTIME_ROLE` is configured. This optional
+environment setting is an existing unprivileged PostgreSQL role identifier, not a
+Spring YAML property. Without it, the migrator retains its schema/table maintenance
+behavior and applies no deployment-role grants. Configured grants on existing
+tables/sequences and defaults for future migration-owned objects are applied in
+a repeatable transaction outside V1. Invalid roles or foreign schema ownership
+fail closed. This does not make Flyway, engine DDL and grants one transaction. Runtime has no schema CREATE grant; migration
+credentials remain separate. Database ACLs do not replace source/role/database HBA
+restrictions, private listeners/firewalls or hostname-verified TLS. Backups cover
+one database and preserve ACL/ownership metadata, not cluster roles or secrets.
+Restore targets are new isolated databases, never automatic production resets.
+Local restart/restore tests do not establish Pi startup or host-reboot durability.
+
+## Hosted migration placement (#111)
+
+The database admin agent runs the standalone migrator on the database server;
+the Pi runs only the restricted runtime. Both artifacts must identify the same
+approved source revision, using native images for their different architectures.
+[Hosting](../user-guide/control-plane-hosting.md) owns the separate recipes,
+LDAP/OpenBao credential delivery and cross-host maintenance coordination with
+rotation. Runtime receives no migration secret. This placement preserves the
+existing Flyway/Flowable/grant ordering and transaction boundaries.

@@ -24,7 +24,7 @@ on the route. Health remains public with status only. JSON parsing, HMAC and the
 entire imperative inbox transaction run on bounded-elastic threads, not Netty's
 event loop. Ingress has a bounded per-request buffer, not a deployment-wide rate
 limiter or tested sustained-load budget. Deploy behind TLS and a rate-limiting
-reverse proxy before external exposure. No tunnel or live webhook is provisioned.
+reverse proxy before external exposure. No tunnel or live webhook is provisioned. The optional [hosted receipt-only overlay](../user-guide/github-webhooks.md#hosted-receipt-only-configuration-114) enables this boundary without enabling execution; host ingress and preserving deployment policy remain separate #114 acceptance.
 
 GitHub signs the body, not the delivery/event headers, and supplies no signed
 expiry timestamp. TLS protects transport; delivery UUID deduplication alone is not
