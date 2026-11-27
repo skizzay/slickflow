@@ -35,7 +35,7 @@ definition inventory, and support normal startup/restart with zero registered
 workflows. Preserve retained data and history; this planning reset authorizes no
 live deletion, schema reset, workflow removal or configuration change.
 
-### Goal1 delivery breakdown
+### Goal 1 delivery breakdown
 
 The owner authorized nine small stories under #128: delivery/release rules #133,
 workflow-free startup #134, main-only publication #135, main protection #142, release verification #136,
@@ -53,7 +53,9 @@ Reviewed implementation lands through story → epic → main. Then a verified m
 release is published and separately authorized for deployment. Keep the Epic open
 through live acceptance; it need not be closed before its main release can exist.
 Creating these stories or merging planning guidance does not approve a production
-operation or choose the pending release naming/version convention.
+operation. The [release contract](branching-and-versioning.md#goal-1-release-contract-133)
+records the owner-approved immutable vX.Y.Z convention beginning with v0.1.0,
+with separate exact-candidate release and deployment approvals.
 
 ## Goal 2 — Workflow registration and unregistration
 

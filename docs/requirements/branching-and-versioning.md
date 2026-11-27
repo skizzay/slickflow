@@ -1,7 +1,7 @@
 # Main-only GitFlow and semantic versions
 
 The default branch policy below follows the owner's instructions under
-[Epic #128](https://github.com/skizzay/slickflow/issues/128), delivery rules
+[Epic #128](https://github.com/skizzay/slickflow/issues/128) and delivery rules
 [#133](https://github.com/skizzay/slickflow/issues/133). The versioning/release and
 hotfix design retained from [#100](https://github.com/skizzay/slickflow/issues/100)
 remains proposed where not separately approved. The
@@ -37,27 +37,60 @@ documentation in the same PR. Every documentation code example added or changed
 requires a unit test of that exact snippet or shared tested source. Syntax/lint
 and link validation alone do not replace that test.
 
-Main protection and publication guards are distinct Goal1 requirements: #135
+Main protection and publication guards are distinct Goal 1 requirements: #135
 provides CI and stable check identities, #142 establishes the approved main
 protection/review policy, and #136 verifies source/release eligibility. Require
 actual policy readback before the release-candidate integration; this proposed
 requirement does not claim that main is already protected or authorize a settings
 change. Emergency overrides require the separate reviewed scope/audit contract.
 
-Production releases for Goal1 must be built from reviewed main, after integration,
+Production releases for Goal 1 must be built from reviewed main, after integration,
 and consumed through verified immutable source/build/artifact identities. An Epic
 artifact does not become eligible merely because its commit later enters main.
 Keep the Epic open through the main-release/live-deployment acceptance phase.
+
+## Goal 1 release contract (#133)
+
+The owner approved this convention on 2026-11-27: immutable `vX.Y.Z` tags
+identify reviewed main commits, beginning with `v0.1.0`. Before 1.0, a breaking
+change increments MINOR and resets PATCH; compatible fixes increment PATCH.
+Compatible new functionality increments MINOR. After 1.0, use the SemVer rules
+below. The initial version is reserved by this policy, not published by it.
+
+Each candidate must record the repository and exact main source commit; trusted
+CI workflow identity, event/ref, successful run and attempt; paired immutable
+runtime/migration digests with their native platforms; and the reviewed deployment
+configuration revision. Both images must share the approved source/build identity.
+A mutable tag, successful branch build or commit that later enters main is not
+sufficient. Main protection and reviewed-integration evidence are required by
+#142/#136; missing or inconsistent evidence makes the candidate ineligible.
+
+After verified integration, an authenticated human must explicitly approve the
+exact version, source and artifact set before release/tag publication. Bind that
+approval to the candidate evidence; changes invalidate it and require renewed
+approval. Do not move or reuse a published version tag. A release approval does
+not authorize deployment: separately approve the target environment, immutable
+release/configuration identities and bounded operation under the existing
+maintenance contract. Deployment consumes verified artifacts without rebuilding
+branch code and requires independent running-identity and health readback.
+
+This is the agreed requirement, not implemented enforcement or authorization to
+publish `v0.1.0`. #135 implements main-only publication eligibility, #142 main
+protection, #136 candidate verification, #138 deployment authorization, #139 actual
+release publication and #140 live deployment/readback. Current CI still admits
+`epic/108` publication; the [CI guide](../user-guide/control-plane-ci.md) describes
+that existing behavior. No prior branch-built artifact is retroactively qualified.
+Broader release-staging and hotfix automation below remains proposed.
 
 Choose the release version from the actual reviewed public-API change:
 backward-incompatible changes increment MAJOR, backward-compatible functionality
 increments MINOR, and backward-compatible bug fixes increment PATCH. Reset lower
 components when incrementing MAJOR/MINOR. Agent suggestions are evidence for human
-review, not authority to determine compatibility or issue a release. Initial 0.x
-versions require an explicit compatibility policy; absence of a stable API does
-not justify silently classifying a breaking fix as a patch.
+review, not authority to determine compatibility or issue a release. The approved
+pre-1.0 policy above applies to initial 0.x releases; absence of a stable API does not justify silently classifying a breaking fix as a patch.
 
-Reserve the candidate version before creating its versioned branch. Branch/tag
+Reserve the candidate version before publication or an explicitly authorized
+versioned staging branch; the default path requires no release branch. Branch/tag
 collisions or a competing release require reconciliation and fresh approval; never
 reuse a branch for another approved change or move an existing version tag.
 Prerelease identifiers such as `1.5.0-rc.1` are optional reviewed candidates, not

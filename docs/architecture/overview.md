@@ -32,8 +32,8 @@ mandatory. See the [event-driven sequence](workflow-boundaries.md#event-driven-p
 Codex drafts an epic and child stories; human approves the plan. Validate structured dependencies and acceptance-criteria coverage, reject cycles, create epic branch from main. Eligible stories receive isolated branches from the latest epic head. A story's dependencies are satisfied only after their PRs merge into the epic branch. Codex implements and tests, opens PR targeting epic branch. Copilot reviews; actionable feedback may trigger bounded remediation cycles. Required checks and merge permissions gate story integration. Once all stories merge, integration and architecture reviews run, then human approves the release-to-main PR and the exact versioned release.
 
 The [main-only GitFlow contract](../requirements/branching-and-versioning.md)
-uses temporary epic/feature branches and a versioned release branch, with no develop
-branch. An independently approved hotfix can branch from the latest released main
+uses temporary epic/feature branches returning to their bases, with no develop
+branch. Release-staging branches require explicit edge-case instructions. An independently approved hotfix can branch from the latest released main
 commit, produce a compatible patch through the same review/merge gates, and track
 propagation into affected active epics/releases. The
 [workflow reference](workflow-reference.md) models both paths; runtime release and

@@ -2,7 +2,7 @@
 
 System structure, component boundaries, contracts and design decisions belong here.
 
-- [Architecture overview](overview.md)
+- [Architecture overview](overview.md) — control/execution boundaries; default epic/story branches return to their bases, with explicitly instructed release-staging exceptions.
 
 The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worker controller. The [decision spike #18](https://github.com/skizzay/slickflow/issues/18) established bounded Flowable feasibility; production implementation and GitHub integration remain unverified.
 
