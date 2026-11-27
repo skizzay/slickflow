@@ -2,9 +2,9 @@ name: Control-plane artifacts
 
 on:
   pull_request:
-    branches: [main, epic/108]
+    branches: [main, 'epic/*']
   push:
-    branches: [main, epic/108]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -53,11 +53,8 @@ jobs:
 
   publish:
     name: Publish (${{ matrix.arch }})
-    needs: verify
-    if: >-
-      github.repository == 'skizzay/slickflow' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/epic/108' || github.ref == 'refs/heads/main')
+    needs: [verify, publication-source]
+    if: needs.publication-source.outputs.allowed == 'true'
     permissions:
       contents: read
       packages: write
@@ -74,7 +71,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Verify publication source and checkout
+        run: ./scripts/publish-control-plane.sh --check-source
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build and verify the actual publication pair
         env:
@@ -106,3 +106,23 @@ jobs:
       - name: Remove registry session
         if: always()
         run: docker logout ghcr.io
+
+  publication-source:
+    name: Check publication source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    permissions: {}
+    outputs:
+      allowed: ${{ steps.source.outputs.allowed }}
+    steps:
+      - name: Check exact repository, ref and event
+        id: source
+        shell: bash
+        run: |
+          # GitHub Actions string comparisons are case-insensitive.
+          if [[ "$GITHUB_REPOSITORY" == skizzay/slickflow && "$GITHUB_REF" == refs/heads/main &&
+                ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) ]]; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'allowed=false' >> "$GITHUB_OUTPUT"
+          fi
