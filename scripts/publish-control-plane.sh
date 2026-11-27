@@ -1,24 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-# Called only after verification in the trusted publication job; no deployment.
 : "${GITHUB_REPOSITORY:?repository required}"
 : "${GITHUB_SHA:?commit required}"
-: "${GITHUB_RUN_ID:?pipeline run required}"
-: "${GITHUB_STEP_SUMMARY:?pipeline summary path required}"
-: "${SLICKFLOW_PUBLISH_ARCH:?native architecture required}"
 [[ "$GITHUB_REPOSITORY" == skizzay/slickflow && "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]] || {
   echo 'Publication requires skizzay/slickflow and a full lowercase commit SHA' >&2; exit 1;
 }
 [[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]] || {
   echo 'Publication checkout does not match the selected commit' >&2; exit 1;
 }
+case "${GITHUB_EVENT_NAME:-}:${GITHUB_REF:-}" in
+  push:refs/heads/main|workflow_dispatch:refs/heads/main) ;;
+  *) echo 'Publication requires a push or manual dispatch on refs/heads/main' >&2; exit 1 ;;
+esac
+# Check the source before registry authentication and again before pushing.
+if [[ ${1:-} == --check-source ]]; then
+  exit 0
+fi
+: "${GITHUB_RUN_ID:?pipeline run required}"
+: "${GITHUB_STEP_SUMMARY:?pipeline summary path required}"
+: "${SLICKFLOW_PUBLISH_ARCH:?native architecture required}"
 case "$SLICKFLOW_PUBLISH_ARCH" in amd64|arm64) ;; *)
   echo 'Publication supports only native amd64 or arm64' >&2; exit 1 ;;
-esac
-case "${GITHUB_EVENT_NAME:-}:${GITHUB_REF:-}" in
-  push:refs/heads/epic/108|push:refs/heads/main|workflow_dispatch:refs/heads/epic/108|workflow_dispatch:refs/heads/main) ;;
-  *) echo 'Publication requires an approved trusted source event' >&2; exit 1 ;;
 esac
 # Validate both before publishing either. Tags aid discovery; consumers use digests.
 for target in runtime migration; do

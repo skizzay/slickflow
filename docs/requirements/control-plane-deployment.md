@@ -244,13 +244,13 @@ interface rather than one-host locking. Admin reports runtime startup/grants
 verified; compatible update/recovery and host-restart evidence remain pending. Administrator-reported
 account/coordination evidence is distinct from application validation.
 
-## CI implementation boundary (#112)
+## CI implementation boundary
 
 The [CI guide](../user-guide/control-plane-ci.md) defines native PR verification
-and trusted-branch GHCR publication with commit/digest/run records. Publication
-requires both architecture checks; PRs cannot receive publication credentials.
-First successful trusted publication remains acceptance evidence to collect after
-workflow integration. This configuration does not deploy to either host.
+and main-only GHCR publication with commit/digest/run records (#112, #135).
+Publication requires both architecture checks and a trusted exact-main event.
+PR checks use read-only permissions. Successful main publication remains evidence
+to collect during release verification under Epic #128.
 
 ## Corrected release after failed execution
 

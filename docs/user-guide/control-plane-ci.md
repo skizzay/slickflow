@@ -1,34 +1,41 @@
 # Control-plane verification and publication
 
-Tracks [#112](https://github.com/skizzay/slickflow/issues/112) under
-[epic #108](https://github.com/skizzay/slickflow/issues/108). Packaging #110 is
-integrated through PR #117; split-host configuration #111 through PR #118.
+Native CI builds on [#112](https://github.com/skizzay/slickflow/issues/112),
+with main-only publication under [#135](https://github.com/skizzay/slickflow/issues/135).
 [Packaging](control-plane-packaging.md) owns image contents and local builds;
 [hosting](control-plane-hosting.md) owns deployment inputs and maintenance.
 
 ## Source and permission boundary
 
-`.github/workflows/control-plane.yaml` validates PRs targeting `main` or
-`epic/108` and pushes to those branches. Each native amd64/ARM64 validation job
+`.github/workflows/control-plane.yaml` validates PRs targeting `main` or any
+`epic/*` branch, including `epic/128`. It also validates main pushes and manual
+dispatches. Each native amd64/ARM64 validation job
 runs configuration/publication guard tests, the full Maven/PostgreSQL 18.6 suite,
 paired image builds, packaged smoke checks and disposable hosting/recovery checks.
 GitHub-hosted `ubuntu-24.04` and `ubuntu-24.04-arm` runners are used; no homelab
 runner, deployment credential or database access is required. Native ARM64 runner
 checks verify architecture execution, not Pi-specific capacity or networking.
 
+The workflow is named `Control-plane artifacts`. Its exact native job check
+names are `Verify (amd64)` and `Verify (arm64)`. These are the check identities
+for the separate [main protection story #142](https://github.com/skizzay/slickflow/issues/142).
+
 PR validation has only `contents: read`, checkout credential persistence is off,
 and no registry login occurs. The workflow does not use `pull_request_target`,
 privileged PR approval paths or an artifact from untrusted code for publication.
 Third-party actions are pinned to full commit SHAs; update pins explicitly.
 
-Publication runs only in `skizzay/slickflow`, for a push or manual dispatch on
-`main` or `epic/108`, after **both** validation jobs succeed. It rebuilds on each
-native architecture and smoke-tests the actual pair before registry login. Only
-these separate trusted jobs have `packages: write`; they use the short-lived
+Publication requires a push or manual dispatch in `skizzay/slickflow` on the exact
+`refs/heads/main` ref and successful results from **both** native validation jobs.
+A permissionless job makes case-sensitive comparisons of the event context before
+the publication job can start. The publication script independently verifies
+that context and the checked-out SHA before registry login and before any push.
+Each native publication job rebuilds and smoke-tests its actual pair before
+registry login. Only these jobs have `packages: write`. They use the short-lived
 `GITHUB_TOKEN`, never production or personal credentials. No GitHub write or
 package token is supplied to validation jobs. No deployment occurs here.
-Branch merge permissions remain the source authorization boundary; restrict
-trusted branches to reviewed human-approved integration.
+Reviewed integration and main protection remain separate requirements for
+production release eligibility. See the [release contract](../requirements/branching-and-versioning.md#goal-1-release-contract-133).
 
 ## Artifacts and provenance
 
@@ -75,21 +82,18 @@ gh run rerun RUN_ID --repo skizzay/slickflow
 gh run watch RUN_ID --repo skizzay/slickflow --exit-status
 ```
 
-Manual dispatch can start validation on other selected refs, but publication
-is restricted to the two trusted branches. GitHub requires the workflow on the
-default branch before offering dispatch. Until then, merging
-this workflow into `epic/108` triggers its first trusted publication. Never push
-an unreviewed change directly to a trusted branch to exercise publication.
+Manual dispatch can start validation on other selected refs. Only dispatch on
+`refs/heads/main` is eligible for publication. GitHub requires the workflow on
+the default branch before offering dispatch. Prior Epic-built artifacts remain
+ineligible even if their commit later enters main.
 
 ## Verification and completion
 
-Local tests exercise trusted/untrusted source rejection, simulated push failure
-without a success record, and digest/provenance creation. Actionlint checks the
-workflow. Actual PR checks and first trusted publication must be observed in
-GitHub; local simulations alone do not complete #112. A bounded implementation
-PR may merge to enable the first trusted run; leave #112 open until the published
-pair and gate behavior are verified. Deployment pipeline #113 and native Pi
-startup/real database initialization remain separate acceptance work.
+Local tests exercise the workflow eligibility check, independent publication
+guard, SHA mismatch, partial push failure and digest/provenance creation.
+Actionlint checks the workflow. Observe both native checks on the story PR and
+verify that publication jobs are skipped. Observe first main publication and
+its provenance separately during release verification under Epic #128.
 
 Receipt-only ingress configuration (#114) is also checked with
 `./scripts/verify-hosting.sh --webhooks` on each native architecture before
