@@ -4,8 +4,12 @@
 `skizzay/slickflow` with one classic GitHub branch protection rule. Public
 repositories on GitHub Free support this rule. The owner chose a zero-review-count
 rule for the current solo-maintainer model. The [policy file](../../.github/main-branch-protection.json)
-is prepared for separately authorized activation. Live protection requires
-successful verification after the settings change. The
+is active on `main` following owner-authorized activation and independent
+readback under #142. Equivalent disposable-branch tests verified rejection of
+direct/force/delete requests and pending, failed and missing required checks;
+checked integration succeeded. The test branches were removed afterward. Run the
+verifier again before integration; recorded evidence does not certify future
+settings or earlier main commits. The
 [branching contract](../requirements/branching-and-versioning.md) governs story,
 Epic and release approvals.
 
