@@ -37,6 +37,13 @@ documentation in the same PR. Every documentation code example added or changed
 requires a unit test of that exact snippet or shared tested source. Syntax/lint
 and link validation alone do not replace that test.
 
+Main protection and publication guards are distinct Goal1 requirements: #135
+provides CI and stable check identities, #142 establishes the approved main
+protection/review policy, and #136 verifies source/release eligibility. Require
+actual policy readback before the release-candidate integration; this proposed
+requirement does not claim that main is already protected or authorize a settings
+change. Emergency overrides require the separate reviewed scope/audit contract.
+
 Production releases for Goal1 must be built from reviewed main, after integration,
 and consumed through verified immutable source/build/artifact identities. An Epic
 artifact does not become eligible merely because its commit later enters main.

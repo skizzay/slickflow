@@ -37,11 +37,17 @@ live deletion, schema reset, workflow removal or configuration change.
 
 ### Goal1 delivery breakdown
 
-The owner authorized eight small stories under #128: delivery/release rules #133,
-workflow-free startup #134, main-only publication #135, release verification #136,
+The owner authorized nine small stories under #128: delivery/release rules #133,
+workflow-free startup #134, main-only publication #135, main protection #142, release verification #136,
 live inventory/preservation plan #137, deployment authorization #138, actual main
 release publication #139, and live rollout/empty-registry readback #140. Exact
 acceptance/dependencies remain in those issues and their native parent links.
+
+CI/check coverage #135 precedes main protection #142; release verification #136
+consumes the agreed protection and reviewed-integration evidence. Main protection
+must be active and verified before release-candidate integration and #139's first
+eligible main release. The actual policy and repository-setting authorization are
+separate from this plan; current protection is not implied by an issue or guide.
 
 Reviewed implementation lands through story → epic → main. Then a verified main
 release is published and separately authorized for deployment. Keep the Epic open
