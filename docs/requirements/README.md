@@ -4,7 +4,7 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 
 - [Roadmap](roadmap.md) — three goal Epics: main-release workflow-free control plane (#128, story breakdown authorized), registration lifecycle (#129), then execution/next-step triggers (#130); owner review precedes stories for each Epic.
 - [Staged review and feedback](review-and-feedback.md) — proposed QA, specialist-agent and human gates, a separate feedback store and governed skill improvement (#100).
-- [Main-only GitFlow and semantic versions](branching-and-versioning.md) — owner-directed default main/epic/story bases and explicit overrides (#133); approved initial v0.1.0/main release identity and separate approval contract; broader release-staging and hotfix automation remains proposed (#100).
+- [Main-only GitFlow and semantic versions](branching-and-versioning.md) — owner-directed default main/epic/story bases and explicit overrides (#133); main protection and human merge policy (#142); approved initial v0.1.0/main release identity and separate approval contract; broader release-staging and hotfix automation remains proposed (#100).
 - [Roadmap consolidation record](../research/roadmap-reset-2026-11-26.md) — historical issue map; earlier Foundation/Planning/Execution and other trackers are superseded, not additional active Epics.
 
 - [Single-worker protocol v1](worker-protocol.md) — proposed message and lease contract (#37), with implemented Boot-configured OAuth2 authentication boundary (#38).

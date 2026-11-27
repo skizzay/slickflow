@@ -18,7 +18,8 @@ checks verify architecture execution, not Pi-specific capacity or networking.
 
 The workflow is named `Control-plane artifacts`. Its exact native job check
 names are `Verify (amd64)` and `Verify (arm64)`. These are the check identities
-for the separate [main protection story #142](https://github.com/skizzay/slickflow/issues/142).
+for [main branch protection](main-branch-protection.md), pinned to the GitHub
+Actions app (`15368`).
 
 PR validation has only `contents: read`, checkout credential persistence is off,
 and no registry login occurs. The workflow does not use `pull_request_target`,
