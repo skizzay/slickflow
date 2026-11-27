@@ -60,7 +60,10 @@ manual approval and workers remain disabled. No schema change is required.
 
 The admin delivers a distinct OpenBao-managed signing secret as an absolute
 `SLICKFLOW_WEBHOOK_SECRET_FILE` path outside the checkout, private and readable
-by container UID/GID 10001 (normally owner 10001, mode 0400). Compose mounts it at
+by the container: UID 10001 with mode 0400, or UID 0/10001 and GID 10001
+with mode 0440. Preflight requires regular files and rejects symlinks, unrelated
+group access and write/execute/special bits for both database and signing secrets.
+Compose mounts it at
 `/run/secrets/SLICKFLOW_GITHUB_WEBHOOK_SECRET` for the existing Spring configtree.
 The database password stays a separate secret. No App PEM, LDAP password or
 runner credential is used for webhook signing.

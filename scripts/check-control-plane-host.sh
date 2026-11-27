@@ -36,10 +36,11 @@ if os.environ['SLICKFLOW_PREFLIGHT_WEBHOOKS']=='true':
     secret_keys.append('SLICKFLOW_WEBHOOK_SECRET_FILE')
 for key in secret_keys:
     p=os.getenv(key,''); require(os.path.isabs(p) and os.path.isfile(p), key+' must select an existing private file')
-    s=os.stat(p)
-    require(not s.st_mode & 0o007 and
-            ((s.st_uid==10001 and s.st_mode & stat.S_IRUSR) or (s.st_gid==10001 and s.st_mode & stat.S_IRGRP)),
-            key+' must be private and readable by container UID/GID 10001')
+    s=os.lstat(p); mode=stat.S_IMODE(s.st_mode)
+    require(stat.S_ISREG(s.st_mode) and
+            ((mode==0o400 and s.st_uid==10001) or
+             (mode==0o440 and s.st_uid in (0,10001) and s.st_gid==10001)),
+            key+' must be a regular file: UID 10001 mode 0400, or UID 0/10001 GID 10001 mode 0440; no symlinks')
 require(os.path.isfile(os.getenv('SLICKFLOW_DB_CA_FILE','')), 'Existing database CA file required')
 try:
     require(float(os.getenv('SLICKFLOW_CPU_LIMIT','0'))>0,'Approved CPU budget required')

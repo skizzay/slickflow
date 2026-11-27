@@ -111,7 +111,11 @@ is an admin-operated alternative to the one-shot container.
 
 Materialize only the runtime password file on Pi and only the migration password
 file on the database server, outside the checkout,
-readable by container UID/GID 10001 and inaccessible to other users. Compose
+readable by the container and inaccessible to other host users: a regular file
+owned by UID 10001 with mode 0400, or owned by UID 0/10001 and GID 10001 with
+mode 0440. Preflight rejects symlinks, unrelated groups, write/execute/special bits
+and all other modes. These metadata checks do not replace the admin's protected
+parent-directory and exact-path policy. Compose
 file-backed secrets preserve source-file ownership/permissions; declaring a mode
 in Compose does not fix a host file. The runtime imports the password through
 Spring configtree; the migrator wrapper reads its own secret into the process
