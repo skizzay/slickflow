@@ -1,6 +1,6 @@
 ---
 name: Epic
-description: Approved unit of autonomous execution
+description: Proposed outcome for human review before story breakdown
 title: "[Epic] "
 labels: []
 ---
@@ -12,8 +12,15 @@ labels: []
 ## Acceptance criteria
 - [ ]
 
-## Child stories and dependencies
-<!-- Link all child stories; dependencies must be explicit and acyclic -->
+## Review status
+- [ ] Owner has reviewed this Epic's outcome, scope and open decisions
+<!-- Do not create or enumerate implementation stories before this review. -->
+
+## Epic dependencies
+<!-- Link outcome-level prerequisites; do not preselect implementation stories. -->
+
+## Child stories
+<!-- Leave empty until owner review. Then agree the breakdown with explicit dependencies. -->
 
 ## Execution approval
 - [ ] Plan reviewed and approved by human
