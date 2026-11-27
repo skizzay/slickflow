@@ -74,13 +74,12 @@ release/configuration identities and bounded operation under the existing
 maintenance contract. Deployment consumes verified artifacts without rebuilding
 branch code and requires independent running-identity and health readback.
 
-This is the agreed requirement, not implemented enforcement or authorization to
-publish `v0.1.0`. #135 implements main-only publication eligibility, #142 main
-protection, #136 candidate verification, #138 deployment authorization, #139 actual
-release publication and #140 live deployment/readback. Current CI still admits
-`epic/108` publication; the [CI guide](../user-guide/control-plane-ci.md) describes
-that existing behavior. No prior branch-built artifact is retroactively qualified.
-Broader release-staging and hotfix automation below remains proposed.
+The [CI workflow](../user-guide/control-plane-ci.md) implements main-only artifact
+publication eligibility under #135. Main protection (#142), candidate
+verification (#136), deployment authorization (#138), release publication (#139)
+and live deployment/readback (#140) remain separate work. No prior Epic-built
+artifact is retroactively qualified. Broader release-staging and hotfix
+automation below remains proposed.
 
 Choose the release version from the actual reviewed public-API change:
 backward-incompatible changes increment MAJOR, backward-compatible functionality

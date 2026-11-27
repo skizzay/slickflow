@@ -31,4 +31,4 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 
 - [Private hosting and recovery](../user-guide/control-plane-hosting.md) — scoped DDL/DML identities, migrator-owned schemas and post-migration grants, remote persistence and restart/backup boundaries (#111).
 
-- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — native PostgreSQL/image verification, trusted-source GHCR publication and digest/run traceability (#112).
+- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — native PostgreSQL/image verification and the independent source guard for main-only GHCR publication (#112, #135).
