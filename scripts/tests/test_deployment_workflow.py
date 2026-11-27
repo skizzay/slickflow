@@ -33,12 +33,37 @@ def workflow_script(source):
 
 
 class DeploymentWorkflowTest(unittest.TestCase):
-    def invoke(self, action, release=''):
-        body = workflow_script(WORKFLOW.read_text())
-        # Override the Bash builtin so tests capture the fixed invocation only.
-        harness = 'exec() { printf "%s\\n" "$@"; }\n' + body
-        return subprocess.run(['bash', '-c', harness], capture_output=True, text=True,
-                              env={'PATH': os.defpath, 'LANG': 'C', 'ACTION': action, 'RELEASE_ID': release})
+    def invoke(self, action, release='', startup_env=None):
+        source = WORKFLOW.read_text()
+        body = workflow_script(source)
+        shells = re.findall(r'^ +shell: *(.+?) *$', source, re.MULTILINE)
+        self.assertEqual(len(shells), 1)
+        shell = shlex.split(shells[0])
+        if shell == ['bash']:
+            shell += ['--noprofile', '--norc', '-e', '-o', 'pipefail', '{0}']
+        self.assertEqual(shell.count('{0}'), 1)
+        # Capture the fixed invocation without invoking an installed launcher.
+        # Also verify startup-hook variables are absent from the running shell.
+        harness = ('[[ ! ${BASH_ENV+x} && ! ${ENV+x} ]] || exit 98\n'
+                   'exec() { printf "%s\\n" "$@"; }\n' + body)
+        env = {'PATH': os.defpath, 'LANG': 'C', 'ACTION': action, 'RELEASE_ID': release}
+        env.update(startup_env or {})
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'dispatch.sh'
+            script.write_text(harness)
+            return subprocess.run([str(script) if part == '{0}' else part for part in shell],
+                                  capture_output=True, text=True, env=env)
+
+    def test_workflow_shell_removes_startup_hooks_before_bash_starts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'must-not-exist'
+            startup = Path(directory) / 'startup.sh'
+            startup.write_text('touch ' + shlex.quote(str(marker)) + '\n')
+            result = self.invoke('probe', startup_env={'BASH_ENV': str(startup),
+                                                      'ENV': str(startup)})
+            self.assertFalse(marker.exists(), 'Bash sourced a startup file before dispatch')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(), ['/usr/local/bin/slickflow-deploy', 'probe'])
 
     def test_caller_shell_startup_files_cannot_execute(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -14,7 +14,10 @@ repository on `main` or `epic/108`. Its job requires environment
 `slickflow-deploy`. Contents/Actions permissions are read-only; OIDC token issuance
 is enabled for the approved job. There is no checkout, secret retrieval or
 approval automation. Dispatch expressions enter environment variables, never
-shell source. The fixed commands are:
+shell source. The shell invocation removes `BASH_ENV` and `ENV` before Bash
+starts, and disables profile/rc startup files; clearing them in the script body
+would be too late. Regression checks invoke this configured shell with synthetic
+startup hooks and verify they cannot execute. The fixed commands are:
 
 ```text
 /usr/local/bin/slickflow-deploy probe
