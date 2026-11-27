@@ -7,7 +7,7 @@ stories before Epic review. The active [roadmap](../requirements/roadmap.md) is
 
 ## Disposition and preservation
 
-Reviewed 62 open issues and closed them as `not_planned` / superseded, not as
+Initially reviewed 62 open issues and closed them as `not_planned` / superseded, not as
 completed implementations. Each retains its original body and a transition note
 linking its consolidation home. The homes below retain relevant design/evidence
 for later evaluation; they do not import every historical requirement into the new
@@ -84,6 +84,18 @@ withdrawn from current scheduling, without any naming-clearance claim.
 | [#122](https://github.com/skizzay/slickflow/issues/122) | [Backlog] Define portable deployment roles, approval and break-glass boundaries | [#128](https://github.com/skizzay/slickflow/issues/128) |
 | [#123](https://github.com/skizzay/slickflow/issues/123) | [Backlog] Establish SlickFlow backup policy and verified recovery automation | [#128](https://github.com/skizzay/slickflow/issues/128) |
 | [#127](https://github.com/skizzay/slickflow/issues/127) | Automate development-to-SRE handoff across projects with separate GitHub App identities | [#129](https://github.com/skizzay/slickflow/issues/129), [#130](https://github.com/skizzay/slickflow/issues/130) |
+
+## Integration correction — 2026-11-27
+
+Closing #108 during planning cleanup was premature: its delivered branch remains
+37 commits ahead of main. #108 is reopened for residual final integration through
+[PR #132](https://github.com/skizzay/slickflow/pull/132), with explicit human
+approval. The current disposition is 61 retired legacy issues, one retained
+integration tracker (#108), and three proposed new Epics. The table preserves the
+original consolidation homes, not proof that all old issues remain closed.
+Integrate the existing baseline first, then reconcile roadmap PR #131 with it;
+do not lose packaging, CI, hosting or ingress implementation. No new stories,
+automatic merge or live mutation follows from this correction.
 
 ## Earlier roadmap (historical)
 
