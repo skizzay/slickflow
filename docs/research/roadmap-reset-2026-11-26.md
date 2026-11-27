@@ -87,15 +87,17 @@ withdrawn from current scheduling, without any naming-clearance claim.
 
 ## Integration correction — 2026-11-27
 
-Closing #108 during planning cleanup was premature: its delivered branch remains
-37 commits ahead of main. #108 is reopened for residual final integration through
-[PR #132](https://github.com/skizzay/slickflow/pull/132), with explicit human
-approval. The current disposition is 61 retired legacy issues, one retained
-integration tracker (#108), and three proposed new Epics. The table preserves the
-original consolidation homes, not proof that all old issues remain closed.
-Integrate the existing baseline first, then reconcile roadmap PR #131 with it;
-do not lose packaging, CI, hosting or ingress implementation. No new stories,
-automatic merge or live mutation follows from this correction.
+Closing #108 during planning cleanup was premature: its delivered branch was
+37 commits ahead of main at the original integration baseline. It was reopened
+for human-reviewed final integration. [PR #132](https://github.com/skizzay/slickflow/pull/132)
+subsequently merged that implementation and two review hardening fixes into main
+at `c5086d00953b16170fae1ccab4ba3473e589681b` on 2026-11-27.
+This roadmap branch then merged that main revision, preserving all deployment,
+packaging, hosting, persistence and CI changes while resolving the roadmap text
+in favor of the three proposed goals. The table records original consolidation
+homes, not proof of implementation completion or the latest state of every tracker.
+No new stories, automatic merge or live mutation follows from this reconciliation.
+Remaining historical operating acceptance was not marked passed by integration.
 
 ## Earlier roadmap (historical)
 

@@ -1,0 +1,18 @@
+# Opt-in receipt/classification only; requires reviewed admin transition policy.
+# Apply after compose.yaml. This does not provision public ingress.
+services:
+  runtime:
+    environment:
+      SLICKFLOW_GITHUB_WEBHOOK_ENABLED: 'true'
+    command:
+      - --slickflow.execution.enabled=false
+      - --slickflow.execution.inbox.enabled=false
+      - --slickflow.manual-approval.enabled=false
+      - --slickflow.worker.enabled=false
+      - --slickflow.github.webhook.enabled=true
+    secrets:
+      - source: webhook_signing_secret
+        target: SLICKFLOW_GITHUB_WEBHOOK_SECRET
+secrets:
+  webhook_signing_secret:
+    file: ${SLICKFLOW_WEBHOOK_SECRET_FILE:?external webhook signing secret required}

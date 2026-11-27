@@ -1,0 +1,108 @@
+name: Control-plane artifacts
+
+on:
+  pull_request:
+    branches: [main, epic/108]
+  push:
+    branches: [main, epic/108]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-plane-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Configuration boundaries
+        run: python3 -m unittest discover -s scripts/tests -v
+      - name: Full PostgreSQL 18 regression suite
+        env:
+          COMPOSE_FILE: compose.yaml:packaging/control-plane/compose.regression18.yaml
+        run: ./scripts/verify-bootstrap.sh
+      - name: Native image build and smoke checks
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          revision=$(git rev-parse HEAD)
+          ./scripts/package-control-plane.sh "$revision" "linux/$ARCH"
+          export SLICKFLOW_RUNTIME_IMAGE=$(docker image inspect "slickflow-runtime:$revision-$ARCH" --format '{{.Id}}')
+          export SLICKFLOW_MIGRATION_IMAGE=$(docker image inspect "slickflow-migration:$revision-$ARCH" --format '{{.Id}}')
+          ./scripts/verify-packaging.sh
+          ./scripts/verify-hosting.sh
+          ./scripts/verify-hosting.sh --webhooks
+
+  publish:
+    name: Publish (${{ matrix.arch }})
+    needs: verify
+    if: >-
+      github.repository == 'skizzay/slickflow' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/epic/108' || github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build and verify the actual publication pair
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          revision=$(git rev-parse HEAD)
+          ./scripts/package-control-plane.sh "$revision" "linux/$ARCH"
+          export SLICKFLOW_RUNTIME_IMAGE=$(docker image inspect "slickflow-runtime:$revision-$ARCH" --format '{{.Id}}')
+          export SLICKFLOW_MIGRATION_IMAGE=$(docker image inspect "slickflow-migration:$revision-$ARCH" --format '{{.Id}}')
+          ./scripts/verify-packaging.sh
+          ./scripts/verify-hosting.sh
+          ./scripts/verify-hosting.sh --webhooks
+      - name: Authenticate publication only
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_ACTOR" --password-stdin
+      - name: Publish verified pair and record digests
+        env:
+          SLICKFLOW_PUBLISH_ARCH: ${{ matrix.arch }}
+        run: ./scripts/publish-control-plane.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: control-plane-provenance-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: provenance-${{ matrix.arch }}.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove registry session
+        if: always()
+        run: docker logout ghcr.io

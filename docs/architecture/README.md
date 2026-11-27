@@ -10,7 +10,7 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 
 - [Control-plane persistence bootstrap](control-plane-persistence.md) — implemented schema ownership, execution intent persistence, atomic approved startup (#89), indexed classified source-delivery claims/checkpoints (#103) and opt-in single-story inbox dispatch (#84), migration executable, run/approval uniqueness (#86) and WebFlux boundary for #7.
 
-- [Verified webhook inbox](webhook-inbox.md) — HMAC ingress, metadata retention and asynchronous classification for #8.
+- [Verified webhook inbox](webhook-inbox.md) — HMAC ingress, metadata retention and asynchronous classification for #8; optional receipt-only hosting boundary for #114.
 
 - [Hexagonal control-plane structure](hexagonal-control-plane.md) — framework-free core, ports, adapters and enforced dependency rules.
 
@@ -24,3 +24,11 @@ The intended stack is Java/Spring Boot with PostgreSQL and a separate Java worke
 - [Flowable and provider boundaries](workflow-boundaries.md) — target event-driven orchestration, independent ticket/repository inputs, review/remediation/merge loop and worker boundaries; includes implementation-status distinctions. Approved workflow registration and startup are described in [control-plane persistence](control-plane-persistence.md).
 
 - [Configured manual plan approval](manual-plan-approval.md) — human OAuth2 authority, immutable pins and transactional approval/invalidation (#46).
+
+- [Deployment operating contract](../requirements/control-plane-deployment.md) — proposed two-host boundary, serialized maintenance and preservation requirements; remote PostgreSQL 18.6 (existing-service upgrade/recovery verified) and Pi Caddy behind Cloudflare Tunnel selected/proposed; application hosting is not provisioned.
+
+- [Control-plane packaging](../user-guide/control-plane-packaging.md) — JRE-only runtime/migration image boundary and committed-source provenance (#110).
+
+- [Private hosting and recovery](../user-guide/control-plane-hosting.md) — scoped DDL/DML identities, migrator-owned schemas and post-migration grants, remote persistence and restart/backup boundaries (#111).
+
+- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — native PostgreSQL/image verification, trusted-source GHCR publication and digest/run traceability (#112).

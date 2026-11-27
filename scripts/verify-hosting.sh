@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+webhooks=false
+case "${1:-}" in
+  '') ;;
+  --webhooks) webhooks=true ;;
+  *) echo "Usage: $0 [--webhooks]" >&2; exit 2 ;;
+esac
+: "${SLICKFLOW_RUNTIME_IMAGE:?immutable runtime image required}"
+: "${SLICKFLOW_MIGRATION_IMAGE:?immutable migration image required}"
+export SLICKFLOW_RUNTIME_IMAGE SLICKFLOW_MIGRATION_IMAGE
+export SLICKFLOW_FIXTURE_DIR SLICKFLOW_FIXTURE_PASSWORD
+SLICKFLOW_FIXTURE_DIR=$(mktemp -d)
+SLICKFLOW_FIXTURE_PASSWORD=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
+project="slickflow-hosting-${RANDOM}-$$"
+# Exercise the deployed recipes, not independently maintained service copies.
+export SLICKFLOW_RUNTIME_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/runtime-password"
+export SLICKFLOW_MIGRATION_PASSWORD_FILE="$SLICKFLOW_FIXTURE_DIR/migration-password"
+export SLICKFLOW_DB_CA_FILE="$SLICKFLOW_FIXTURE_DIR/ca.crt"
+export SLICKFLOW_DB_URL='jdbc:postgresql://127.0.0.1:1/slickflow?currentSchema=slickflow'
+export SLICKFLOW_CPU_LIMIT=1 SLICKFLOW_MIGRATION_MEMORY=1g
+export SLICKFLOW_FIXTURE_DB_PORT=1
+compose=(docker compose -f deployment/control-plane/compose.yaml \
+  -f deployment/control-plane/compose.migration.yaml \
+  )
+if [[ "$webhooks" == true ]]; then
+  compose+=(-f deployment/control-plane/compose.webhook.yaml)
+  export SLICKFLOW_WEBHOOK_SECRET_FILE="$SLICKFLOW_FIXTURE_DIR/webhook-secret"
+  export SLICKFLOW_FIXTURE_WEBHOOK_SECRET
+  SLICKFLOW_FIXTURE_WEBHOOK_SECRET=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
+fi
+compose+=(-f deployment/control-plane/compose.verify.yaml -p "$project")
+cleanup() {
+  "${compose[@]}" down --volumes --remove-orphans >/dev/null
+  # Tools write backup files as root inside only this unique disposable directory.
+  docker run --rm -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
+    postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 \
+    -c 'rm -rf /fixture/backups' >/dev/null
+  rm -rf "$SLICKFLOW_FIXTURE_DIR"
+}
+trap cleanup EXIT
+chmod 755 "$SLICKFLOW_FIXTURE_DIR"
+mkdir "$SLICKFLOW_FIXTURE_DIR/backups"
+# TLS is not exercised by this isolated fixture; the production CA bind still exists.
+printf 'synthetic fixture; not a CA\n' > "$SLICKFLOW_DB_CA_FILE"
+# Separate paths mirror production credential delivery; values are disposable fixture-only.
+for secret in runtime-password migration-password; do
+  (umask 077; printf %s "$SLICKFLOW_FIXTURE_PASSWORD" > "$SLICKFLOW_FIXTURE_DIR/$secret")
+done
+if [[ "$webhooks" == true ]]; then
+  (umask 077; printf %s "$SLICKFLOW_FIXTURE_WEBHOOK_SECRET" > "$SLICKFLOW_WEBHOOK_SECRET_FILE")
+fi
+# Bind-backed secrets retain host ownership; grant only the runtime container user.
+docker run --rm --user 0:0 -v "$SLICKFLOW_FIXTURE_DIR:/fixture" --entrypoint sh \
+  postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 \
+  -c 'chown 10001:10001 /fixture/runtime-password /fixture/migration-password && chmod 400 /fixture/runtime-password /fixture/migration-password; if [ -f /fixture/webhook-secret ]; then chown 10001:10001 /fixture/webhook-secret && chmod 400 /fixture/webhook-secret; fi'
+
+cat > "$SLICKFLOW_FIXTURE_DIR/pg_hba.conf" <<'HBA'
+local all all trust
+host all postgres all scram-sha-256
+host slickflow,slickflow_restore_test slickflow_migrator,slickflow_runtime all scram-sha-256
+host all all all reject
+HBA
+cat > "$SLICKFLOW_FIXTURE_DIR/pg_service.conf" <<'SERVICES'
+[backup]
+host=db
+dbname=slickflow
+user=slickflow_migrator
+[restore]
+host=db
+dbname=slickflow_restore_test
+user=slickflow_migrator
+SERVICES
+"${compose[@]}" up -d --wait db
+address=$("${compose[@]}" port db 5432)
+SLICKFLOW_FIXTURE_DB_PORT=${address##*:}
+for pass in 1 2; do
+  "${compose[@]}" exec -T db psql -X -U postgres -d postgres < deployment/control-plane/bootstrap.sql >/dev/null
+done
+"${compose[@]}" exec -T db psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
+\getenv fixture_password POSTGRES_PASSWORD
+ALTER ROLE slickflow_migrator LOGIN PASSWORD :'fixture_password';
+ALTER ROLE slickflow_runtime LOGIN PASSWORD :'fixture_password';
+CREATE DATABASE slickflow_restore_test OWNER slickflow_migrator;
+REVOKE ALL ON DATABASE slickflow_restore_test FROM PUBLIC;
+GRANT CONNECT ON DATABASE slickflow_restore_test TO slickflow_runtime;
+SQL
+# Drift must fail closed rather than silently stripping unexpected privileges.
+"${compose[@]}" exec -T db psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  -c 'ALTER ROLE slickflow_runtime CREATEDB' >/dev/null
+if "${compose[@]}" exec -T db psql -X -U postgres -d postgres < deployment/control-plane/bootstrap.sql >/dev/null 2>&1; then
+  echo 'Bootstrap unexpectedly accepted elevated runtime privileges' >&2; exit 1
+fi
+"${compose[@]}" exec -T db psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  -c 'ALTER ROLE slickflow_runtime NOCREATEDB' >/dev/null
+# Host bootstrap must leave schema creation to Flyway/the migration identity.
+schema_count=$("${compose[@]}" exec -T db psql -XAt -U postgres -d slickflow \
+  -c "SELECT count(*) FROM pg_namespace WHERE nspname IN ('slickflow','flowable')")
+[[ "$schema_count" == 0 ]]
+"${compose[@]}" run --rm migration
+"${compose[@]}" run --rm migration
+"${compose[@]}" run --rm -T -e PGSERVICE=backup tools psql -X -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM pg_namespace n JOIN pg_roles r ON r.oid=n.nspowner
+      WHERE n.nspname IN ('slickflow','flowable') AND r.rolname='slickflow_migrator') <> 2 THEN
+    RAISE EXCEPTION 'Migrator must own both schemas';
+  END IF;
+END $$;
+-- New objects after migration must inherit runtime grants too.
+CREATE TABLE slickflow.grant_fixture(id bigint GENERATED BY DEFAULT AS IDENTITY);
+SQL
+"${compose[@]}" run --rm -T tools psql -h db -U slickflow_runtime -d slickflow -v ON_ERROR_STOP=1 \
+  -c 'INSERT INTO slickflow.grant_fixture DEFAULT VALUES' >/dev/null
+"${compose[@]}" run --rm -T -e PGSERVICE=backup tools psql -X -v ON_ERROR_STOP=1 \
+  -c 'DROP TABLE slickflow.grant_fixture' >/dev/null
+"${compose[@]}" up -d runtime
+health() {
+  local port
+  port=$("${compose[@]}" port runtime 8080)
+  for ((attempt=0; attempt<120; attempt++)); do
+    if curl --max-time 3 --fail --silent "http://$port/actuator/health" | grep -q '"status":"UP"'; then return; fi
+    sleep 1
+  done
+  echo 'Runtime health verification failed' >&2; return 1
+}
+health
+if [[ "$webhooks" == true ]]; then
+  address=$("${compose[@]}" port runtime 8080)
+  python3 scripts/verify_hosted_webhooks.py "http://$address"
+  classified=false
+  for ((attempt=0; attempt<30; attempt++)); do
+    counts=$("${compose[@]}" exec -T db psql -XAt -U postgres -d slickflow -c \
+      "SELECT (SELECT count(*) FROM slickflow.webhook_inbox), (SELECT count(*) FROM slickflow.webhook_event WHERE event_kind IN ('PING','ISSUE')), (SELECT count(*) FROM slickflow.job), (SELECT count(*) FROM slickflow.workflow_run), (SELECT count(*) FROM slickflow.workflow_source_delivery)")
+    if [[ "$counts" == '2|2|0|0|0' ]]; then classified=true; break; fi
+    sleep 1
+  done
+  [[ "$classified" == true ]] || { echo 'Receipt-only classification/persistence check failed' >&2; exit 1; }
+fi
+"${compose[@]}" run --rm -T tools psql -h db -U slickflow_runtime -d slickflow -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
+SELECT count(*) FROM slickflow.repository;
+DO $$
+BEGIN
+  BEGIN
+    CREATE TABLE slickflow.forbidden_fixture(id integer);
+    RAISE EXCEPTION 'Runtime unexpectedly has schema DDL';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    CREATE ROLE forbidden_fixture;
+    RAISE EXCEPTION 'Runtime unexpectedly has cluster role DDL';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END $$;
+SQL
+"${compose[@]}" run --rm -e PGSERVICE=backup tools psql -X -v ON_ERROR_STOP=1 -c \
+  "INSERT INTO slickflow.repository(id,github_id,full_name) VALUES ('00000000-0000-0000-0000-000000000111',111,'synthetic/hosting-fixture')"
+# Runtime cannot connect to another database even with a valid password.
+if "${compose[@]}" run --rm tools psql -h db -U slickflow_runtime -d postgres -c 'SELECT 1' >/dev/null 2>&1; then
+  echo 'Runtime unexpectedly reached unrelated database' >&2; exit 1
+fi
+"${compose[@]}" run --rm -e PGSERVICE=backup -e SLICKFLOW_BACKUP_DIR=/backups tools \
+  bash /repo/scripts/backup-control-plane.sh
+if "${compose[@]}" run --rm -e PGSERVICE=backup -e SLICKFLOW_BACKUP_DIR=/backups tools \
+  bash /repo/scripts/restore-control-plane.sh >/dev/null 2>&1; then
+  echo 'Restore unexpectedly accepted production database name' >&2; exit 1
+fi
+# Recreate only the DB container, preserving its named volume, then runtime.
+"${compose[@]}" stop runtime
+"${compose[@]}" rm -sf db
+"${compose[@]}" up -d --wait db
+"${compose[@]}" up -d runtime
+health
+value=$("${compose[@]}" run --rm -T -e PGSERVICE=backup tools psql -XAt -c 'SELECT full_name FROM slickflow.repository')
+[[ "$value" == synthetic/hosting-fixture ]]
+backup=$("${compose[@]}" run --rm -T tools sh -c 'find /backups -mindepth 1 -maxdepth 1 -type d')
+"${compose[@]}" run --rm -e PGSERVICE=restore -e "SLICKFLOW_BACKUP_DIR=$backup" tools \
+  bash /repo/scripts/restore-control-plane.sh
+restored=$("${compose[@]}" run --rm -T -e PGSERVICE=restore tools psql -XAt -c 'SELECT full_name FROM slickflow.repository')
+[[ "$restored" == "$value" ]]
+# A populated restore target must be refused rather than cleaned/replaced.
+if "${compose[@]}" run --rm -e PGSERVICE=restore -e "SLICKFLOW_BACKUP_DIR=$backup" tools \
+  bash /repo/scripts/restore-control-plane.sh >/dev/null 2>&1; then
+  echo 'Restore unexpectedly accepted a populated target' >&2; exit 1
+fi
+echo 'PASS: scoped bootstrap, runtime secret injection, private DB, container restart and isolated restore'

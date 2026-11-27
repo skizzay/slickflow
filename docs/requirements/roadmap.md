@@ -11,13 +11,15 @@ execution activation or merge.
 | 2 | [#129 — Register/unregister project-defined workflows](https://github.com/skizzay/slickflow/issues/129) | Authorized workflow lifecycle operations with project ownership, validation, version identity and preserved history; registration starts no execution. |
 | 3 | [#130 — Trigger execution and advance the next step](https://github.com/skizzay/slickflow/issues/130) | Start or resume the correct registered workflow/run safely, using a trigger model to be discussed with the owner before story breakdown. |
 
-## Finish the existing deployment integration first
+## Integrated deployment baseline
 
-The delivered deployment code is still on `epic/108`. [PR #132](https://github.com/skizzay/slickflow/pull/132)
-requires human epic-to-main review/merge before this roadmap change is reconciled
-and integrated. [#108](https://github.com/skizzay/slickflow/issues/108) is reopened
-only to track that remaining integration, not as a fourth new product goal or a
-renewed story plan. This reset does not discard the delivered deployment baseline.
+[PR #132](https://github.com/skizzay/slickflow/pull/132) merged the delivered
+`epic/108` baseline into `main` at
+`c5086d00953b16170fae1ccab4ba3473e589681b`. Packaging, native CI, hosting,
+persistence grants and receipt-only ingress configuration are retained. This
+roadmap change follows that integration; it does not replace the delivered code.
+The prior deployment tracker is historical integration evidence, not a fourth
+new goal or renewed story plan.
 
 ## Goal 1 — Live control plane with no registered workflows
 
@@ -82,7 +84,8 @@ acceptance remain future concerns, without unperformed checks being marked passe
 
 The owner accepts the live receipt/classification service as the receipt MVP.
 This does not establish an empty registry, full issue-to-PR automation, every
-previous operational acceptance criterion or final epic-to-main integration.
+previous operational acceptance criterion. The completed #108 epic-to-main
+integration is recorded separately above.
 
 The [2026-11-26 consolidation record](../research/roadmap-reset-2026-11-26.md)
 preserves the retired issue map and earlier roadmap. Closed superseded issues are

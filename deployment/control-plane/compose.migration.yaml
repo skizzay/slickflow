@@ -1,0 +1,43 @@
+# Database-server one-shot maintenance only; no runtime credential is required.
+services:
+  migration:
+    # Preserve the database-host source approved by the administrator.
+    network_mode: host
+    image: ${SLICKFLOW_MIGRATION_IMAGE:?immutable image required}
+    restart: 'no'
+    read_only: true
+    tmpfs:
+      - "/tmp:size=64m,mode=1777"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SLICKFLOW_MIGRATION_MEMORY:?approved migration budget required}
+    cpus: ${SLICKFLOW_CPU_LIMIT:?approved CPU budget required}
+    pids_limit: 256
+    environment:
+      SLICKFLOW_DB_URL: ${SLICKFLOW_DB_URL:?hostname-verified TLS JDBC URL required}
+      SLICKFLOW_DB_USER: slickflow_migrator
+      SLICKFLOW_DB_RUNTIME_ROLE: slickflow_runtime
+      SLICKFLOW_ENGINE_SCHEMA: flowable
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        export SLICKFLOW_DB_PASSWORD="$$(cat /run/secrets/password)"
+        exec java -jar /app/migrate.jar
+    secrets:
+      - source: migration_password
+        target: password
+    volumes:
+      - type: bind
+        source: ${SLICKFLOW_DB_CA_FILE:?database CA required}
+        target: /run/trust/postgresql-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+secrets:
+  migration_password:
+    file: ${SLICKFLOW_MIGRATION_PASSWORD_FILE:?external migration secret required}

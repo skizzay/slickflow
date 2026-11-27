@@ -1,0 +1,41 @@
+# Fresh, uniquely named test project only. DB uses random loopback for host-network migration.
+services:
+  db:
+    image: postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+    environment:
+      POSTGRES_PASSWORD: ${SLICKFLOW_FIXTURE_PASSWORD:?required}
+    ports: ['127.0.0.1::5432']
+    command: [postgres, -c, 'hba_file=/fixture/pg_hba.conf']
+    volumes:
+      - database:/var/lib/postgresql
+      - ${SLICKFLOW_FIXTURE_DIR:?required}:/fixture:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d postgres']
+      interval: 1s
+      timeout: 3s
+      retries: 60
+  migration:
+    environment:
+      # Production migration keeps host networking; only this disposable DB is reachable here.
+      SLICKFLOW_DB_URL: jdbc:postgresql://127.0.0.1:${SLICKFLOW_FIXTURE_DB_PORT:?required}/slickflow?currentSchema=slickflow
+  runtime:
+    environment:
+      SLICKFLOW_DB_URL: jdbc:postgresql://db:5432/slickflow?currentSchema=slickflow
+    # Override only the host port, retaining production tmpfs/limits/secrets/command.
+    ports: !override ['127.0.0.1::8080']
+  tools:
+    profiles: [tools]
+    image: postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+    entrypoint: []
+    environment:
+      PGSERVICEFILE: /fixture/pg_service.conf
+      PGPASSWORD: ${SLICKFLOW_FIXTURE_PASSWORD:?required}
+    volumes:
+      - ../../scripts:/repo/scripts:ro
+      - ${SLICKFLOW_FIXTURE_DIR:?required}:/fixture:ro
+      - ${SLICKFLOW_FIXTURE_DIR:?required}/backups:/backups
+secrets:
+  runtime_password:
+    file: ${SLICKFLOW_FIXTURE_DIR:?required}/runtime-password
+volumes:
+  database:
