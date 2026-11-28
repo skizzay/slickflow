@@ -17,4 +17,4 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 
 - [Control-plane hosting operations](../user-guide/control-plane-hosting.md) — #111 database/role bootstrap, migrator-owned schemas and runtime grants, recovery and required target evidence.
 
-- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — stable native check names for main protection and exact-main GHCR publication with digest/run provenance (#112, #135).
+- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — stable native check names for main protection and exact-main GHCR publication with digest/run provenance (#112, #135) Read-only verification binds reviewed main integration, current native publication and immutable image pairs (#136).

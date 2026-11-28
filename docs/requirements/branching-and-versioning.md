@@ -80,11 +80,13 @@ maintenance contract. Deployment consumes verified artifacts without rebuilding
 branch code and requires independent running-identity and health readback.
 
 The [CI workflow](../user-guide/control-plane-ci.md) implements main-only artifact
-publication eligibility under #135. Main protection (#142), candidate
-verification (#136), deployment authorization (#138), release publication (#139)
-and live deployment/readback (#140) remain separate work. No prior Epic-built
-artifact is retroactively qualified. Broader release-staging and hotfix
-automation below remains proposed.
+publication eligibility under #135. [Main protection](../user-guide/main-branch-protection.md)
+establishes the integration gates under #142. The
+[release candidate verifier](../user-guide/control-plane-ci.md#verify-a-release-candidate)
+checks the integrated source, current build and immutable artifact pairs under
+#136. Deployment authorization (#138), release publication (#139) and live
+deployment/readback (#140) remain separate work. Broader release-staging and
+hotfix automation below remains proposed.
 
 Choose the release version from the actual reviewed public-API change:
 backward-incompatible changes increment MAJOR, backward-compatible functionality

@@ -88,6 +88,52 @@ Manual dispatch can start validation on other selected refs. Only dispatch on
 the default branch before offering dispatch. Prior Epic-built artifacts remain
 ineligible even if their commit later enters main.
 
+## Verify a release candidate
+
+[Story #136](https://github.com/skizzay/slickflow/issues/136) provides a read-only
+[release candidate verifier](../../scripts/verify_release_candidate.py).
+Run it from a trusted, reviewed checkout with Python 3, the GitHub CLI
+authenticated to github.com with repository administration and Actions read
+access, and Docker Buildx with read access to both GHCR packages.
+
+| Input | Value |
+|---|---|
+| `--run-id` | GitHub Actions run ID for an exact-main push or manual dispatch after integration |
+| `--source-revision` | Full lowercase Git SHA of the owner-merged source commit |
+| `--configuration-revision` | Full lowercase Git SHA of the intended deployment configuration recorded by the owner |
+| `--integration-receipt` | Owner-retained JSON receipt for the exact merge, checks and configuration |
+| `--trusted-receipt-digest` | SHA-256 pin in `sha256:` form independently obtained from the owner |
+
+The verifier reconciles the [owner receipt](main-branch-protection.md#release-integration-receipt)
+with GitHub's repository, merged PR, merge parents, main history, native PR checks
+and live protection. It requires a same-repository PR integrated by the owner
+using a two-parent merge commit. Squash and rebase integrations are outside this
+path. The source checkout must match the verifier's reviewed workflow,
+publication source guard and protection policy. The workflow and guard confirm
+the exact branch ref during publication. GitHub's run API returns the short
+branch name.
+
+Both native verify jobs and both native publish jobs must have succeeded in the
+run's current attempt, along with the publication source job. The verifier
+downloads the two provenance archives from GitHub by artifact ID, checks their
+API digests and upload times, and compares their run, attempt, revision and
+platform. It then checks all four image references against
+[the registry](control-plane-packaging.md#release-candidate-images). The verifier
+checks the current main and PR workflow attempts again before emitting the
+record. Rerunning only failed jobs may keep prior-attempt jobs and artifacts.
+Rerun all jobs for one complete main attempt and verify again. A rerun of the
+PR check workflow requires owner reconciliation of the pinned integration
+evidence.
+
+Success writes a sanitized JSON record to standard output for release and
+[deployment approval](control-plane-hosting.md#release-candidate-evidence). An
+unknown, expired, missing or inconsistent result exits with a nonzero status and
+a diagnostic on standard error. Check provider read access and availability when
+a read fails, or reconcile mismatches with the owner before retrying. Preserve
+the receipt and selection evidence independently of GitHub's artifact retention.
+The verifier makes no release or deployment changes. Positive live verification
+requires an eligible main run following reviewed integration into main.
+
 ## Verification and completion
 
 Local tests exercise the workflow eligibility check, independent publication

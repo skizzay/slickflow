@@ -30,6 +30,22 @@ Public ingress and execution remain disabled. The optional [receipt-only webhook
 operational completion. Keep #111 open until its remaining application/recovery
 acceptance is verified; the deployment pipeline is #113.
 
+## Release candidate evidence
+
+Preserve the JSON from [release candidate verification](control-plane-ci.md#verify-a-release-candidate)
+with the owner-approved release and deployment records. The JSON binds the
+reviewed main source, configuration revision, workflow run and attempt,
+integration evidence and exact native image digests. Use the ARM64 runtime
+digest on the Pi and amd64 migration digest on the database server. Confirm that
+the staged recipe/configuration and approved operation match the recorded
+configuration revision and host preflight checks. Keep local environment
+values, credential paths and private configuration in owner-controlled storage.
+
+The candidate record supports the separate release and deployment approvals.
+A changed build attempt, image digest or configuration requires renewed
+verification and approval before staging. Resolve uncertain evidence with the
+owner before proceeding with maintenance.
+
 ## Database bootstrap and identities
 
 Use PostgreSQL 18 client tools and an owner-authorized cluster administrator via

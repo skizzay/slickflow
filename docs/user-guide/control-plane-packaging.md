@@ -48,6 +48,16 @@ does not verify ARM64 execution: run smoke checks on an ARM64 host or a separate
 configured emulator before deploying to the Pi. No emulator is installed by these
 scripts. Packaging skips tests; run regression and smoke checks separately.
 
+## Release candidate images
+
+Use the runtime and migration references from the same verified run and attempt.
+The [release candidate verifier](control-plane-ci.md#verify-a-release-candidate)
+resolves the GHCR manifest bytes at each exact digest and checks its image
+configuration for the matching Linux architecture, repository source label and
+full source revision. Select single-platform manifests. Both architecture pairs
+come from the two current native provenance archives. A floating tag or a local
+image ID is outside this registry verification path.
+
 ## Disposable PostgreSQL smoke check
 
 ```sh

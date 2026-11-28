@@ -58,6 +58,7 @@ class MainProtectionTest(unittest.TestCase):
             evidence = verifier.verify()
 
         commands = [call.args[0] for call in run.call_args_list]
+        self.assertTrue(all(call.kwargs["timeout"] == 25 for call in run.call_args_list))
         self.assertEqual([command[:4] for command in commands], [["gh", "api", "--hostname", "github.com"]] * 3)
         self.assertEqual(commands[0][4], PROTECTION_PATH)
         self.assertEqual(commands[1][4:6], ["graphql", "-f"])
@@ -126,10 +127,14 @@ class MainProtectionTest(unittest.TestCase):
         self.assert_rejected(GITHUB_PROTECTION, {"errors": [{"message": "partial query"}]})
         self.assert_rejected(GITHUB_PROTECTION, github_graphql(None))
 
-    def assert_rejected(self, *responses):
+    def test_readback_timeout_fails_without_printing_provider_output(self):
+        failure = subprocess.TimeoutExpired(["gh"], 25, stderr="sensitive process diagnostic")
+        self.assert_rejected(failure, message="GitHub protection readback timed out.")
+
+    def assert_rejected(self, *responses, message="GitHub protection readback failed"):
         stdout, stderr = StringIO(), StringIO()
         with patch.object(verifier, "github_api", side_effect=responses), redirect_stdout(stdout), redirect_stderr(stderr):
             self.assertEqual(verifier.main(), 1)
         self.assertEqual(stdout.getvalue(), "")
-        self.assertIn("GitHub protection readback failed", stderr.getvalue())
+        self.assertIn(message, stderr.getvalue())
         self.assertNotIn("sensitive process diagnostic", stderr.getvalue())
