@@ -19,4 +19,5 @@ Planned topics: installation, connecting a repository, approving work, following
 - [Private control-plane hosting](control-plane-hosting.md) — dedicated shared-database roles, migrator-owned schemas/runtime grants, read-only secret-file ownership checks, LDAP/OpenBao credentials, separate Pi runtime/database-server migration hosting and production-recipe isolated recovery checks (#111); admin-reported runtime startup/grants verified; further update/recovery acceptance pending.
 
 - [Control-plane CI and publication](control-plane-ci.md) — native verification for main and Epic PRs, stable job check names, and main-only GHCR publication with digest/run provenance (#112, #135).
+- [SlickFlow main branch protection](main-branch-protection.md) — required PRs and native checks, human merge approval, policy readback, and emergency restoration (#142).
 - [Protected control-plane maintenance](protected-runner-probe.md) — protected probe/approved-release dispatch, pre-Bash startup-hook removal, exact identity enrollment, readiness and recovery gates (#113); backend deployment reported complete, Actions cancellation and remaining acceptance distinguished.

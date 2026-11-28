@@ -39,10 +39,15 @@ and link validation alone do not replace that test.
 
 Main protection and publication guards are distinct Goal 1 requirements: #135
 provides CI and stable check identities, #142 establishes the approved main
-protection/review policy, and #136 verifies source/release eligibility. Require
-actual policy readback before the release-candidate integration; this proposed
-requirement does not claim that main is already protected or authorize a settings
-change. Emergency overrides require the separate reviewed scope/audit contract.
+protection/review policy, and #136 verifies source/release eligibility. The owner
+chose a required PR with zero GitHub approving reviews for the solo-maintainer
+model. Human approval remains explicit, binds the reviewed PR head and current
+main base, and is followed by manual owner merge. The policy requires both current
+native checks and resolved conversations, including for administrators. See the
+[main branch protection guide](../user-guide/main-branch-protection.md). The
+owner authorizes activation separately and verifies the effective policy before
+release-candidate integration. The same guide defines emergency restoration and
+the protection and integration evidence for release verification.
 
 Production releases for Goal 1 must be built from reviewed main, after integration,
 and consumed through verified immutable source/build/artifact identities. An Epic
