@@ -11,10 +11,10 @@ Describe what SlickFlow should do, its constraints and acceptance criteria here.
 
 - [Manual plan approval contract](../architecture/manual-plan-approval.md) — implemented single-pair approval/invalidation boundary (#46), without dispatch.
 
-- [Initial control-plane deployment](control-plane-deployment.md) — proposed target inventory, operating decisions and delivery gates (#108/#109); dated Pi/remote-service inventory, completed shared PostgreSQL 18.6 upgrade and provisional RAM budget recorded; memory enforcement verified; admin-reported LDAP/OpenBao and private TLS access complete; live deployment and receipt/classification reported by the admin and accepted by the owner; remaining recovery/operational evidence is distinguished from completed integration.
+- [Initial control-plane deployment](control-plane-deployment.md) — proposed target inventory, operating decisions and delivery gates (#108/#109); dated Pi/remote-service inventory, completed shared PostgreSQL 18.6 upgrade and provisional RAM budget recorded; memory enforcement verified; admin-reported LDAP/OpenBao and private TLS access complete; live deployment and receipt/classification reported by the admin and accepted by the owner; remaining recovery/operational evidence is distinguished from completed integration. Includes the approved Forgejo identity requirements for deployment authorization (#138, #148).
 
 - [Deployable control-plane packaging](../user-guide/control-plane-packaging.md) — #110 artifact identity, ARM64 build and runtime/migration verification contract.
 
 - [Control-plane hosting operations](../user-guide/control-plane-hosting.md) — #111 database/role bootstrap, migrator-owned schemas and runtime grants, recovery and required target evidence.
 
-- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — stable native check names for main protection and exact-main GHCR publication with digest/run provenance (#112, #135) Read-only verification binds reviewed main integration, current native publication and immutable image pairs (#136).
+- [Control-plane CI and publication](../user-guide/control-plane-ci.md) — stable native check names for main protection and exact-main Forgejo publication with registry binding, digest and run provenance (#112, #135, #148). Read-only verification binds reviewed main integration and immutable native image pairs (#136).

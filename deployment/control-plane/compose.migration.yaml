@@ -4,6 +4,7 @@ services:
     # Preserve the database-host source approved by the administrator.
     network_mode: host
     image: ${SLICKFLOW_MIGRATION_IMAGE:?immutable image required}
+    pull_policy: never
     restart: 'no'
     read_only: true
     tmpfs:

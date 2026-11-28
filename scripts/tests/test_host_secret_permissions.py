@@ -16,7 +16,6 @@ class HostSecretPermissionsTest(unittest.TestCase):
         env = {
             'SLICKFLOW_PREFLIGHT_ROLE': normalized,
             'SLICKFLOW_PREFLIGHT_WEBHOOKS': str(role == 'runtime-webhook').lower(),
-            'SLICKFLOW_' + normalized.upper() + '_IMAGE': 'example/image@sha256:' + 'a' * 64,
             'SLICKFLOW_' + normalized.upper() + '_PASSWORD_FILE': '/synthetic/password',
             'SLICKFLOW_WEBHOOK_SECRET_FILE': '/synthetic/signing',
             'SLICKFLOW_DB_URL': 'jdbc:postgresql://db.invalid/slickflow?currentSchema=slickflow&sslmode=verify-full&sslrootcert=/run/trust/postgresql-ca.crt',

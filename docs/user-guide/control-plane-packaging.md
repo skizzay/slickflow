@@ -52,11 +52,14 @@ scripts. Packaging skips tests; run regression and smoke checks separately.
 
 Use the runtime and migration references from the same verified run and attempt.
 The [release candidate verifier](control-plane-ci.md#verify-a-release-candidate)
-resolves the GHCR manifest bytes at each exact digest and checks its image
-configuration for the matching Linux architecture, repository source label and
-full source revision. Select single-platform manifests. Both architecture pairs
-come from the two current native provenance archives. A floating tag or a local
-image ID is outside this registry verification path.
+resolves each single-platform manifest digest at its approved Forgejo role
+repository. It checks the manifest bytes and the image configuration for the
+matching Linux architecture, repository source label and full source revision.
+Both native pairs come from the same current publication attempt. For staging,
+combine the binding and digests through the private
+[hosting procedure](control-plane-hosting.md#release-candidate-evidence).
+Floating tags and local image IDs are for local work and are ineligible as
+release identities.
 
 ## Disposable PostgreSQL smoke check
 

@@ -49,9 +49,9 @@ to scope source inspection; a repository-wide scan is not the onboarding path.
 | Worker API messages, leases, fencing and cancellation | [Worker protocol](docs/requirements/worker-protocol.md) — proposed contract, not implemented endpoints |
 | Initial deployment target, operating decisions and authorization gates | [Control-plane deployment contract](docs/requirements/control-plane-deployment.md) — proposed; host verification and owner decisions pending |
 | Deployable runtime/migration images, revision identity and packaging smoke checks | [Control-plane packaging](docs/user-guide/control-plane-packaging.md) |
-| Native CI checks, main-only publication, release candidate verification and reruns | [Control-plane CI](docs/user-guide/control-plane-ci.md) |
+| Native CI checks, main-only Forgejo publication, protected registry binding, release candidate verification and reruns | [Control-plane CI](docs/user-guide/control-plane-ci.md) |
 | Main repository protection, reviewed integration evidence and emergency restoration | [Main branch protection](docs/user-guide/main-branch-protection.md) |
-| Private host/database bootstrap, runtime secrets, restart and recovery | [Control-plane hosting](docs/user-guide/control-plane-hosting.md) |
+| Private registry pulls and preflight, host/database bootstrap, runtime secrets, restart and recovery | [Control-plane hosting](docs/user-guide/control-plane-hosting.md) |
 | Protected probe/approved-release deployment, identity enrollment and recovery gates | [Protected control-plane maintenance](docs/user-guide/protected-runner-probe.md) |
 | Local build, verification and runtime commands | [Local control plane](docs/user-guide/local-control-plane.md) |
 | Evidence behind a design decision or experiment reproduction | [Research index](docs/research/README.md) — historical evidence, not the current specification |

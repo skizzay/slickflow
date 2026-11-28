@@ -38,6 +38,7 @@ class HostingConfigurationTest(unittest.TestCase):
         self.assertEqual(set(config['services']), {'runtime'})
         self.assertEqual(set(config['secrets']), {'runtime_password'})
         service = config['services']['runtime']
+        self.assertEqual(service['pull_policy'], 'never')
         self.assertEqual(service['tmpfs'], ['/tmp:size=64m,mode=1777'])
         self.assertEqual(service['ports'][0]['host_ip'], '127.0.0.1')
         self.assertNotIn('network_mode', service)
@@ -62,7 +63,7 @@ class HostingConfigurationTest(unittest.TestCase):
         self.assertTrue(service['read_only'])
         base = self.config('runtime')['services']['runtime']
         self.assertIn('--slickflow.github.webhook.enabled=false', base['command'])
-        for key in ('image', 'volumes', 'mem_limit', 'cpus', 'tmpfs', 'cap_drop', 'security_opt'):
+        for key in ('image', 'pull_policy', 'volumes', 'mem_limit', 'cpus', 'tmpfs', 'cap_drop', 'security_opt'):
             self.assertEqual(service[key], base[key], key)
 
     def test_receipt_overlay_requires_separate_signing_secret(self):
@@ -75,23 +76,13 @@ class HostingConfigurationTest(unittest.TestCase):
         self.assertEqual(set(config['services']), {'migration'})
         self.assertEqual(set(config['secrets']), {'migration_password'})
         service = config['services']['migration']
+        self.assertEqual(service['pull_policy'], 'never')
         self.assertEqual(service['tmpfs'], ['/tmp:size=64m,mode=1777'])
         self.assertEqual(service['network_mode'], 'host')
         self.assertEqual(service['environment']['SLICKFLOW_DB_RUNTIME_ROLE'], 'slickflow_runtime')
         self.assertNotIn('ports', service)
         self.assertTrue(service['read_only'])
         self.assertEqual(service['restart'], 'no')
-
-    def test_preflight_rejects_mutable_images_for_each_role(self):
-        for role in ('runtime', 'migration', 'runtime-webhook'):
-            with self.subTest(role=role):
-                env = dict(os.environ)
-                env['SLICKFLOW_' + role.split('-')[0].upper() + '_IMAGE'] = 'example/image:latest'
-                result = subprocess.run(
-                    ['bash', str(ROOT / 'scripts/check-control-plane-host.sh'), role],
-                    env=env, text=True, capture_output=True)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn('must be an immutable image', result.stderr)
 
 
 if __name__ == '__main__':

@@ -77,18 +77,21 @@ owner retains one small JSON object with these fields:
 
 | Fields | Evidence |
 |---|---|
-| `schema_version`, `repository`, `ref`, `owner_id` | Schema version 1, `skizzay/slickflow`, `refs/heads/main`, and numeric GitHub owner ID |
+| `schema_version`, `repository`, `ref`, `owner_id` | Schema version 2, `skizzay/slickflow`, `refs/heads/main`, and numeric GitHub owner ID |
 | `pr_number`, `head_sha`, `base_sha`, `approved_at` | Numeric PR number, full approved head and base commits, and UTC time of explicit owner approval |
 | `native_run_id`, `native_attempt` | Numeric GitHub PR run ID and current attempt whose native jobs succeeded for the reviewed integration |
 | `policy_revision`, `premerge_protection`, `postmerge_protection` | Full approved policy Git commit and the protection verifier's complete JSON readbacks from before approval and after the merge |
 | `protection_continuous_through_merge` | True when the owner verifies that the policy remained in effect from the pre-merge readback through the manual merge |
 | `merge_sha`, `merged_at`, `configuration_revision` | Full GitHub merge commit, provider merge time in UTC, and full Git revision of the reviewed configuration |
+| `registry_binding_sha256` | Approved SHA-256 binding digest from [private registry configuration](control-plane-ci.md#registry-access-and-reruns) |
 
 Use ISO 8601 UTC timestamps ending in `Z` or `+00:00` and keep the original
 receipt bytes. The owner provides their SHA-256 digest through an authenticated
 channel independent of the candidate inputs. The verifier operator uses that
-trusted digest from an owner-controlled record. A digest obtained alongside
-candidate-submitted evidence establishes byte integrity only.
+trusted digest from an owner-controlled record. The owner verifies the approved
+Forgejo binding separately from the candidate and records only its digest in
+the receipt. A digest obtained alongside candidate-submitted evidence
+establishes byte integrity only.
 
 Historical protection, explicit approval and the association of the native
 checks with the reviewed base are owner attestations bound by this pin. The
