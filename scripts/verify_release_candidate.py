@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import hashlib
 from io import BytesIO
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -14,6 +15,7 @@ from zipfile import BadZipFile, ZIP_DEFLATED, ZIP_STORED, ZipFile
 from zlib import error as CompressionError
 
 import verify_main_protection
+from control_plane_registry import BINDING_FIELD, BINDING_KEY, DIGEST, ROLES, Registry, RegistryError, is_digest
 
 
 REPOSITORY = verify_main_protection.REPOSITORY
@@ -28,9 +30,10 @@ WORKFLOW_NAME = "Control-plane artifacts"
 PUBLISH_SCRIPT = "scripts/publish-control-plane.sh"
 POLICY = ".github/main-branch-protection.json"
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_FILES = (WORKFLOW, PUBLISH_SCRIPT, POLICY)
+SOURCE_FILES = (
+    WORKFLOW, PUBLISH_SCRIPT, "scripts/publish_control_plane.py", "scripts/control_plane_registry.py", POLICY,
+)
 RUNNERS = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
-IMAGE_ROLES = ("runtime", "migration")
 IMAGE_MANIFESTS = {
     "application/vnd.docker.distribution.manifest.v2+json",
     "application/vnd.oci.image.manifest.v1+json",
@@ -40,7 +43,6 @@ MAX_ARCHIVE = 32_768
 MAX_PROVENANCE = 4096
 MAX_RESPONSE = 2_000_000
 SHA = r"[0-9a-f]{40}"
-DIGEST = r"sha256:[0-9a-f]{64}"
 
 
 class Rejected(Exception):
@@ -128,7 +130,7 @@ def verified_file(path, revision):
     )
 
 
-def read_receipt(path, pin, revision, configuration_revision):
+def read_receipt(path, pin, revision, configuration_revision, registry):
     if not matches(pin, DIGEST):
         raise Rejected("An independently authenticated owner receipt pin in sha256 format is required.")
     try:
@@ -140,10 +142,11 @@ def read_receipt(path, pin, revision, configuration_revision):
             "The integration receipt does not match its trusted pin. Obtain the exact receipt from the owner.")
     receipt = json_object(data)
     expect(receipt, {
-        "schema_version": 1, "repository": REPOSITORY, "ref": REF, "owner_id": OWNER_ID,
+        "schema_version": 2, "repository": REPOSITORY, "ref": REF, "owner_id": OWNER_ID,
         "merge_sha": revision, "configuration_revision": configuration_revision,
         "protection_continuous_through_merge": True,
     }, "The owner receipt does not bind this exact integration and configuration.")
+    registry.require_pin(receipt.get(BINDING_FIELD))
     for field in ("head_sha", "base_sha", "policy_revision"):
         require(matches(receipt.get(field), SHA), "The receipt requires full head, base and policy revisions.")
     for field in ("pr_number", "native_run_id", "native_attempt"):
@@ -275,7 +278,7 @@ def verify_integration(receipt, workflow_id):
     return branch
 
 
-def read_provenance(run_id, attempt, arch, revision, publisher):
+def read_provenance(run_id, attempt, arch, revision, publisher, registry):
     name = f"control-plane-provenance-{arch}-{attempt}"
     response = github(f"{API}/actions/runs/{run_id}/artifacts?name={name}&per_page=2")
     message = f"GitHub must provide one current {arch} provenance artifact. Check Actions retention and attempt."
@@ -312,42 +315,45 @@ def read_provenance(run_id, attempt, arch, revision, publisher):
         "revision": revision, "architecture": arch, "run_url": f"{WEB}/actions/runs/{run_id}",
         "run_attempt": str(attempt),
     }, f"The {arch} provenance does not match the exact run, attempt, platform and revision.")
+    registry.require_pin(provenance.get(BINDING_FIELD))
     images = provenance["images"]
-    require(isinstance(images, dict) and images.keys() == set(IMAGE_ROLES),
+    require(isinstance(images, dict) and images.keys() == set(ROLES),
             f"The {arch} provenance must contain exactly one runtime and migration pair.")
+    require(all(is_digest(value) for value in images.values()),
+            f"The {arch} provenance must contain only immutable Forgejo manifest digests.")
+    require(images["runtime"] != images["migration"],
+            f"The {arch} provenance must contain different runtime and migration digests.")
     return artifact_id, images
 
 
-def verify_registry_image(reference, role, arch, revision):
-    prefix = f"ghcr.io/{REPOSITORY}-{role}"
-    require(matches(reference, re.escape(prefix) + "@" + DIGEST),
-            f"Select an immutable GHCR digest in the expected {role} repository.")
-    message = f"GHCR {arch} {role} evidence is unavailable. Check Docker Buildx, read access and connectivity, then retry."
+def verify_registry_image(registry, manifest_digest, role, arch, revision):
+    reference = registry.reference(role, manifest_digest)
+    message = f"Forgejo {arch} {role} evidence is unavailable. Check Docker Buildx, read access and connectivity, then retry."
     inspect = ["docker", "buildx", "imagetools", "inspect"]
     manifest_bytes = command([*inspect, "--raw", reference], message)
-    expected_digest = reference.split("@")[1]
     require(
-        digest(manifest_bytes) == expected_digest
-        or (manifest_bytes.endswith(b"\n") and digest(manifest_bytes[:-1]) == expected_digest),
-        f"The GHCR {arch} {role} manifest does not match its immutable digest.",
+        digest(manifest_bytes) == manifest_digest
+        or (manifest_bytes.endswith(b"\n") and digest(manifest_bytes[:-1]) == manifest_digest),
+        f"The Forgejo {arch} {role} manifest does not match its immutable digest.",
     )
     manifest = json_object(manifest_bytes)
-    invalid_manifest = f"Select a single-platform image manifest for GHCR {arch} {role}."
+    invalid_manifest = f"Select a single-platform image manifest for Forgejo {arch} {role}."
     expect(manifest, {"schemaVersion": 2}, invalid_manifest)
     require(manifest.get("mediaType") in IMAGE_MANIFESTS, invalid_manifest)
     image = json_object(command([*inspect, "--format", "{{json .Image}}", reference], message))
     expect(image, {"os": "linux", "architecture": arch},
-           f"The GHCR {role} image platform does not match linux/{arch}.")
+           f"The Forgejo {role} image platform does not match linux/{arch}.")
     expect(image["config"]["Labels"], {
         "org.opencontainers.image.source": WEB, "org.opencontainers.image.revision": revision,
-    }, f"The GHCR {arch} {role} image source or revision label differs from the approved source.")
+    }, f"The Forgejo {arch} {role} image source or revision label differs from the approved source.")
 
 
 def verify_candidate(run_id, revision, configuration_revision, receipt_path, pin):
     identifier(run_id, "Choose a positive numeric GitHub Actions run ID.")
     require(matches(revision, SHA) and matches(configuration_revision, SHA),
             "Use full lowercase Git revisions for the source and deployment configuration.")
-    receipt = read_receipt(receipt_path, pin, revision, configuration_revision)
+    registry = Registry.parse(os.environ.get(BINDING_KEY))
+    receipt = read_receipt(receipt_path, pin, revision, configuration_revision, registry)
     repository = github(API)
     expect(repository, {"id": REPOSITORY_ID, "full_name": REPOSITORY}, "GitHub repository identity differs.")
     expect(repository["owner"], {"id": OWNER_ID, "login": "skizzay", "type": "User"}, "GitHub owner identity differs.")
@@ -366,10 +372,11 @@ def verify_candidate(run_id, revision, configuration_revision, receipt_path, pin
     jobs = verify_jobs(run_id, attempt, revision, "main", publication=True)
     platforms = {}
     for arch in RUNNERS:
-        artifact_id, images = read_provenance(run_id, attempt, arch, revision, jobs[f"Publish ({arch})"])
-        for role in IMAGE_ROLES:
-            verify_registry_image(images[role], role, arch, revision)
+        artifact_id, images = read_provenance(run_id, attempt, arch, revision, jobs[f"Publish ({arch})"], registry)
         platforms[f"linux/{arch}"] = {"provenance_artifact_id": artifact_id, **images}
+    for arch in RUNNERS:
+        for role in ROLES:
+            verify_registry_image(registry, platforms[f"linux/{arch}"][role], role, arch, revision)
 
     try:
         protection = verify_main_protection.verify()
@@ -389,7 +396,8 @@ def verify_candidate(run_id, revision, configuration_revision, receipt_path, pin
         "The main workflow attempt changed during verification. Retry with the current complete attempt.",
     )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        BINDING_FIELD: registry.binding_sha256,
         "repository": REPOSITORY,
         "source_revision": revision,
         "configuration_revision": configuration_revision,
@@ -439,7 +447,7 @@ def main(argv=None):
             args.run_id, args.source_revision, args.configuration_revision,
             args.integration_receipt, args.trusted_receipt_digest,
         )
-    except Rejected as error:
+    except (Rejected, RegistryError) as error:
         print(f"Candidate rejected. {error}", file=sys.stderr)
         return 1
     except (OSError, KeyError, TypeError, ValueError, AttributeError, RecursionError):

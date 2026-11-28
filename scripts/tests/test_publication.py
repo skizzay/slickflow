@@ -1,8 +1,10 @@
 """Exercise publication event gates and failure behavior without registry access."""
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import textwrap
@@ -10,6 +12,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = 'skizzay/slickflow'
+BINDING = 'forgejo.private.invalid/synthetic-namespace'
+PIN = 'sha256:' + hashlib.sha256(BINDING.encode()).hexdigest()
+TOKEN = 'synthetic-forgejo-token'
+USERNAME = 'synthetic-publisher'
 MAIN = 'refs/heads/main'
 TRUSTED_SOURCES = [('push', MAIN, REPOSITORY), ('workflow_dispatch', MAIN, REPOSITORY)]
 FORBIDDEN_SOURCES = [
@@ -50,16 +56,21 @@ class PublicationWorkflowTest(unittest.TestCase):
         self.assertIn('          persist-credentials: false\n', verify)
         for name, job in self.jobs.items():
             if name != 'publish':
-                self.assertNotRegex(job, r': write\b|write-all\b|secrets\s*[.\[]|docker login')
+                self.assertNotRegex(job, r': write\b|write-all\b|secrets\s*[.\[]|docker login|SLICKFLOW_REGISTRY_')
+                self.assertNotIn('control-plane-publication', job)
 
     def test_only_publication_job_can_authenticate_after_both_native_checks_and_source_guard(self):
         publish = self.jobs['publish']
         self.assertIn('    needs: [verify, publication-source]\n', publish)
         self.assertIn("    if: needs.publication-source.outputs.allowed == 'true'\n", publish)
-        self.assertRegex(publish, r'(?m)^    permissions:\n      contents: read\n      packages: write\n    strategy:')
+        self.assertIn('    environment: control-plane-publication\n', publish)
+        self.assertRegex(publish, r'(?m)^    permissions:\n      contents: read\n    strategy:')
         self.assertIn('          ref: ${{ github.sha }}\n          persist-credentials: false\n', publish)
-        self.assertLess(publish.index('run: ./scripts/publish-control-plane.sh --check-source'),
-                        publish.index('GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}'))
+        self.assertNotRegex(publish, r'packages: write|secrets\.|ghcr\.io')
+        handoff = publish.index('SLICKFLOW_REGISTRY_AUTH_FILE:')
+        self.assertLess(publish.index('run: ./scripts/publish-control-plane.sh --check-source'), handoff)
+        self.assertLess(publish.index('./scripts/verify-hosting.sh --webhooks'), handoff)
+        self.assertIn('      - name: Remove publication handoff\n        if: always()', publish)
 
     def test_read_only_job_computes_exact_source_eligibility(self):
         source = self.jobs['publication-source']
@@ -82,12 +93,12 @@ class PublicationWorkflowTest(unittest.TestCase):
 
 class PublicationTest(unittest.TestCase):
     def run_publication(self, event='push', ref=MAIN, repository=REPOSITORY, *, fail='', summary=True,
-                        arch='amd64', sha=None, check_source=False):
+                        arch='amd64', sha=None, check_source=False, auth='file', pin=PIN, credentials=None):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder)
             (work / 'scripts').mkdir()
-            (work / 'scripts/publish-control-plane.sh').write_bytes(
-                (ROOT / 'scripts/publish-control-plane.sh').read_bytes())
+            for name in ('publish-control-plane.sh', 'publish_control_plane.py', 'control_plane_registry.py'):
+                shutil.copyfile(ROOT / 'scripts' / name, work / 'scripts' / name)
             # A separate tiny Git fixture keeps provenance and test files out of the checkout.
             subprocess.run(['git', 'init', '-q', folder], check=True)
             subprocess.run(['git', '-C', folder, '-c', 'user.name=Fixture',
@@ -96,22 +107,58 @@ class PublicationTest(unittest.TestCase):
             revision = subprocess.check_output(['git', '-C', folder, 'rev-parse', 'HEAD'], text=True).strip()
             docker = work / 'docker'
             docker.write_text('''#!/usr/bin/env python3
-import json,os,pathlib,sys
-args=sys.argv[1:]
-with open(os.environ['CALL_LOG'],'a') as log: log.write(json.dumps(args)+'\\n')
-if args[0]=='push' and os.environ.get('FAIL_PUSH'): sys.exit(1)
-if args[:2]==['image','inspect']:
-    fmt=args[-1]
-    if 'revision' in fmt: print(os.environ['GITHUB_SHA'])
-    elif 'RepoDigests' in fmt: print(json.dumps([args[2].split(':')[0]+'@sha256:'+'a'*64]))
-    else: print(os.environ['SLICKFLOW_PUBLISH_ARCH'] + ' 10001:10001')
+import json, os, pathlib, sys
+args = sys.argv[1:]
+config = None
+if args[:1] == ['--config']:
+    config = args[1]
+    args = args[2:]
+with open(os.environ['CALL_LOG'], 'a') as log:
+    log.write(json.dumps({'args': args, 'config': config}) + '\\n')
+if args[0] == 'login':
+    assert config, 'expected an isolated config'
+    entry = json.loads((pathlib.Path(config) / 'config.json').read_text())
+    assert entry == {'auths': {args[-1]: {}}}, 'unexpected auth destinations'
+    assert sys.stdin.read() == os.environ['FAKE_TOKEN'] + '\\n'
+    if os.environ['FAIL'] == 'login':
+        print(args[-1], os.environ['FAKE_TOKEN'], file=sys.stderr)
+        sys.exit(1)
+if args[0] == 'push':
+    print(args[1], os.environ['FAKE_TOKEN'])
+    if os.environ['FAIL'] and os.environ['FAIL'] in args[1]:
+        print(args[1], os.environ['FAKE_TOKEN'], file=sys.stderr)
+        sys.exit(1)
+if args[:2] == ['image', 'inspect']:
+    fmt = args[-1]
+    if 'RepoDigests' in fmt:
+        repo = args[2].split(':')[0]
+        if os.environ['FAIL'] == 'digest':
+            repo = 'unapproved.invalid/other/slickflow-runtime'
+        digest = 'a' if 'runtime' in repo else 'b'
+        print(json.dumps([repo + '@sha256:' + digest * 64]))
+    else:
+        commit = os.environ['GITHUB_SHA']
+        arch = os.environ['SLICKFLOW_PUBLISH_ARCH']
+        print(f'{commit} linux/{arch} 10001:10001')
 ''')
             docker.chmod(0o755)
+            auth_file = work / 'handoff'
+            if auth != 'missing':
+                auth_file.write_text(json.dumps(credentials if credentials is not None else
+                    {'registry': BINDING, 'registry_binding_sha256': PIN, 'username': USERNAME, 'token': TOKEN}))
+                auth_file.chmod(0o644 if auth == 'public' else 0o600)
+            if auth == 'symlink':
+                link = work / 'alias'
+                link.symlink_to(auth_file)
+                auth_file = link
             env = dict(os.environ, PATH=folder + os.pathsep + os.environ['PATH'],
                        GITHUB_REPOSITORY=repository, GITHUB_SHA=sha or revision,
                        GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='2', GITHUB_STEP_SUMMARY=str(work / 'summary'),
-                       GITHUB_EVENT_NAME=event, GITHUB_REF=ref,
-                       SLICKFLOW_PUBLISH_ARCH=arch, CALL_LOG=str(work / 'calls'), FAIL_PUSH=fail)
+                       GITHUB_EVENT_NAME=event, GITHUB_REF=ref, SLICKFLOW_REGISTRY_AUTH_FILE=str(auth_file),
+                       SLICKFLOW_REGISTRY_BINDING_SHA256=pin,
+                       SLICKFLOW_PUBLISH_ARCH=arch, CALL_LOG=str(work / 'calls'), FAIL=fail, FAKE_TOKEN=TOKEN)
+            if auth == 'relative':
+                env['SLICKFLOW_REGISTRY_AUTH_FILE'] = auth_file.name
             if not summary:
                 env.pop('GITHUB_STEP_SUMMARY', None)
             command = ['bash', str(work / 'scripts/publish-control-plane.sh')]
@@ -119,6 +166,8 @@ if args[:2]==['image','inspect']:
                 command.append('--check-source')
             result = subprocess.run(command, env=env, capture_output=True, text=True)
             calls = (work / 'calls').read_text() if (work / 'calls').exists() else ''
+            self.calls = [json.loads(line) for line in calls.splitlines()]
+            self.summary = (work / 'summary').read_text() if (work / 'summary').exists() else ''
             manifest = work / f'provenance-{arch}.json'
             return result, calls, json.loads(manifest.read_text()) if manifest.exists() else None
 
@@ -147,7 +196,7 @@ if args[:2]==['image','inspect']:
     def test_missing_summary_fails_before_publication(self):
         result, calls, manifest = self.run_publication(summary=False)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('pipeline summary path required', result.stderr)
+        self.assertIn('pipeline summary path is required', result.stderr)
         self.assertEqual(calls, '')
         self.assertIsNone(manifest)
 
@@ -165,11 +214,53 @@ if args[:2]==['image','inspect']:
                 self.assertEqual(calls, '')
                 self.assertIsNone(manifest)
 
-    def test_push_failure_cannot_report_success_or_pair(self):
-        result, calls, manifest = self.run_publication(fail='yes')
+    def assert_private_output(self, result):
+        output = result.stdout + result.stderr + self.summary
+        for value in (BINDING, BINDING.split('/')[0], BINDING.split('/')[1], TOKEN, USERNAME):
+            self.assertNotIn(value, output)
+
+    def test_partial_push_failure_cannot_report_success_or_pair(self):
+        result, _, manifest = self.run_publication(fail='slickflow-migration')
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn('did not confirm', result.stderr)
         self.assertIsNone(manifest)
-        self.assertEqual(sum(json.loads(line)[0] == 'push' for line in calls.splitlines()), 1)
+        self.assertEqual(sum(call['args'][0] == 'push' for call in self.calls), 2)
+        self.assertEqual(self.summary, '')
+        self.assert_private_output(result)
+        configs = {call['config'] for call in self.calls if call['config']}
+        self.assertEqual(len(configs), 1)
+        self.assertFalse(Path(configs.pop()).exists())
+
+    def test_login_and_digest_failures_are_redacted_without_a_pair(self):
+        for fail, message in [('login', 'authentication failed'), ('digest', 'one immutable digest')]:
+            with self.subTest(fail=fail):
+                result, _, manifest = self.run_publication(fail=fail)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertIsNone(manifest)
+                self.assert_private_output(result)
+
+    def test_missing_insecure_or_unapproved_handoff_cannot_route_credentials(self):
+        base_credentials = {'registry': BINDING, 'registry_binding_sha256': PIN,
+                            'username': USERNAME, 'token': TOKEN}
+        other = 'unexpected.private.invalid/other'
+        other_pin = 'sha256:' + hashlib.sha256(other.encode()).hexdigest()
+        cases = [
+            *({'auth': auth} for auth in ('missing', 'public', 'symlink', 'relative')),
+            {'pin': ''},
+            {'credentials': base_credentials | {'registry_binding_sha256': other_pin}},
+            {'credentials': base_credentials | {'registry': other, 'registry_binding_sha256': other_pin}},
+            {'credentials': base_credentials | {'registry': 'ghcr.io/skizzay'}},
+            {'credentials': base_credentials | {'token': TOKEN + '\n'}},
+        ]
+        for options in cases:
+            with self.subTest(case=options.keys()):
+                result, _, manifest = self.run_publication(**options)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(manifest)
+                self.assertEqual([call['args'][:2] for call in self.calls], [['image', 'inspect']] * 2)
+                self.assert_private_output(result)
+                self.assertNotIn(other, result.stderr)
 
     def test_trusted_success_records_both_digests_and_pipeline(self):
         for event, ref, repository in TRUSTED_SOURCES:
@@ -177,15 +268,24 @@ if args[:2]==['image','inspect']:
                 with self.subTest(event=event, arch=arch):
                     result, calls, manifest = self.run_publication(event, ref, repository, arch=arch)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(manifest['images'], {
-                        target: f'ghcr.io/{repository}-{target}@sha256:' + 'a' * 64
-                        for target in ['runtime', 'migration']
-                    })
+                    self.assertEqual(manifest['images'], {'runtime': 'sha256:' + 'a' * 64,
+                                                          'migration': 'sha256:' + 'b' * 64})
+                    self.assertEqual(manifest['registry_binding_sha256'], PIN)
                     self.assertEqual(manifest['run_url'], 'https://github.com/skizzay/slickflow/actions/runs/123')
                     self.assertEqual(manifest['run_attempt'], '2')
                     self.assertEqual(manifest['architecture'], arch)
                     self.assertRegex(manifest['revision'], r'^[a-f0-9]{40}$')
                     self.assertIn(f'{manifest["revision"]}-{arch}', calls)
+                    tag = f'{manifest["revision"]}-{arch}'
+                    self.assertEqual([call['args'] for call in self.calls if call['args'][0] == 'push'],
+                                     [['push', f'{BINDING}/slickflow-{role}:{tag}'] for role in ('runtime', 'migration')])
+                    login, = [call for call in self.calls if call['args'][0] == 'login']
+                    self.assertEqual(login['args'], ['login', '--username', USERNAME, '--password-stdin',
+                                                     BINDING.split('/')[0]])
+                    self.assertFalse(Path(login['config']).exists())
+                    self.assertNotIn(TOKEN, calls)
+                    self.assert_private_output(result)
+                    self.assertIn(PIN, self.summary)
 
 
 if __name__ == '__main__':

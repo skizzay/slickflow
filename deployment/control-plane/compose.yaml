@@ -2,6 +2,7 @@
 services:
   runtime:
     image: ${SLICKFLOW_RUNTIME_IMAGE:?immutable image required}
+    pull_policy: never
     restart: unless-stopped
     init: true
     read_only: true

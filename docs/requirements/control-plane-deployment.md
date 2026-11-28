@@ -40,7 +40,7 @@ publishing its sensitive details.
 | Persistence | Dedicated SlickFlow database on the selected remote PostgreSQL service | Admin reports private access restrictions verified; SlickFlow backup coverage and application persistence acceptance pending |
 | Access | Existing administration plus restricted cross-host maintenance interface | Admin reports SlickFlow-specific TLS/LDAP/source restrictions and positive/negative tests passed |
 | Packaging | Docker Compose runtime on Pi; reuse remote database | Pi Docker/Compose deployments previously verified; admin reports native runtime deployed; host-restart acceptance pending |
-| Registry | GHCR with commit-linked immutable digests | Native publication and selected anonymous digest access verified; image-retention policy pending |
+| Registry | Existing private Forgejo registry on the Pi with commit-linked immutable digests | General registry access previously verified. SlickFlow-specific OpenBao delivery, publisher and consumer access, capacity and retention verification pending under [#148](https://github.com/skizzay/slickflow/issues/148). |
 | Ingress | Existing Cloudflare Tunnel public ingress; proposed route through Pi Caddy to runtime | Pi Caddy currently serves legacy loopback compatibility routes; SlickFlow public route, origin security, TLS ownership and rate limiting unprovisioned/unverified |
 | DNS | Dedicated local SlickFlow service record resolves to Pi | Owner inventory only; this does not establish public DNS or ingress |
 | Secrets | Existing OpenBao 2.7.2 available on database host | Admin reports SlickFlow policies, restricted machine access, separate consumer delivery and automated rotation/recovery verified |
@@ -142,9 +142,10 @@ status-only health. Explicitly keep `slickflow.execution.enabled`,
 OAuth provider or autonomous merge is required. See the
 [inbox architecture](../architecture/webhook-inbox.md) for implemented behavior.
 
-Publish matching runtime and migration executables from the same tested commit,
-with artifact digests and pipeline-run provenance. Verify with real PostgreSQL
-before publication; select the target image platform only after inventory.
+Publish matching runtime and migration images from the same tested main commit
+to the approved private Forgejo namespace. Record the binding hash, native
+manifest digests and pipeline-run provenance. Verify with real PostgreSQL
+before publication and confirm the target image platform by host inventory.
 Deploy only the approved source commit/artifacts, never a floating tag. Limit
 initial operation to one runtime on the Pi and one dedicated remote database. The provisional
 runtime memory budget above is approved; approve remaining CPU, migration-memory,
@@ -247,10 +248,32 @@ account/coordination evidence is distinct from application validation.
 ## CI implementation boundary
 
 The [CI guide](../user-guide/control-plane-ci.md) defines native PR verification
-and main-only GHCR publication with commit/digest/run records (#112, #135).
-Publication requires both architecture checks and a trusted exact-main event.
-PR checks use read-only permissions. Successful main publication remains evidence
-to collect during release verification under Epic #128.
+and main-only Forgejo publication with registry binding, commit, manifest
+digest and run records (#112, #135, #148). Publication requires both architecture
+checks and a trusted exact-main event. PR checks use read-only GitHub permissions
+and receive no registry access. The approved OpenBao handoff and live registry
+verification remain gates for #148. Successful first main publication remains
+evidence to collect under #139.
+
+## Forgejo deployment authorization
+
+[#138](https://github.com/skizzay/slickflow/issues/138) consumes the approved
+registry binding and the version 2 candidate record from
+[release verification](../user-guide/control-plane-ci.md#verify-a-release-candidate).
+The private authorization binds the registry hash, exact resolved ARM64 runtime
+and amd64 migration references, native platform and role, reviewed main source,
+verified publication run and attempt, and approved deployment configuration.
+Keep the two private consumer identities separate from the publisher and provide
+pull access through the administrator-managed OpenBao path. Before you authorize
+deployment, record matching host preflights, verified consumer pulls and the
+other [protected maintenance gates](../user-guide/protected-runner-probe.md#enrollment-and-release-approval).
+Hold the operation if required evidence or access is unavailable, or if the
+configuration, registry binding or manifest digests differ.
+
+The #148 readiness check requires a disposable push, digest inspection and pull.
+Preserve existing deployment and historical package access. A new production
+release still requires separate #139 publication and #138 deployment
+authorization before #140 live rollout.
 
 ## Corrected release after failed execution
 

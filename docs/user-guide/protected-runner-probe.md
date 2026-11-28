@@ -51,9 +51,12 @@ Importing its reviewed bytes into the epic does not enroll that branch's identit
 Enroll each branch separately; do not use a main revision to authorize epic/108.
 
 Before enabling deploy, the owner/admin must approve a complete private release
-policy binding native immutable images, artifact source revision, verified
-publication run/attempt, recipe/config hashes, expected previous registration,
-resource limits, expiry/revocation and current readiness evidence. Artifact
+policy binding native immutable images, approved Forgejo registry binding,
+artifact source revision, verified publication run/attempt, recipe/config
+hashes, expected previous registration, resource limits, expiry/revocation and
+current readiness evidence. The administrator resolves the exact role references
+and verifies both private consumer pulls before selecting a new release. See the
+[deployment authorization contract](../requirements/control-plane-deployment.md#forgejo-deployment-authorization). Artifact
 revision and deployment-workflow revision are distinct. Private policies, secrets,
 backup files, controller paths and raw logs remain outside this public repository.
 

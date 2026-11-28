@@ -1,3 +1,4 @@
+import os
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 import hashlib
@@ -44,7 +45,11 @@ POST_MERGE_READBACK = "2024-11-27T18:16:15Z"
 BUILD_STARTED = "2024-11-27T18:17:00Z"
 BUILD_PUBLISHED = "2024-11-27T18:28:00Z"
 BUILD_COMPLETE = "2024-11-27T18:29:00Z"
+BINDING = "forgejo.private.invalid/synthetic-namespace"
+REGISTRY = verifier.Registry.parse(BINDING)
+PIN = "sha256:" + hashlib.sha256(BINDING.encode()).hexdigest()
 SECRET = "sensitive-upstream-diagnostic"
+PROVIDER_DIAGNOSTIC = f"{SECRET}: request for {BINDING} failed".encode()
 ARTIFACT_IDS = {"amd64": 901, "arm64": 902}
 RUNNER = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
 REPO = {"id": verifier.REPOSITORY_ID, "full_name": verifier.REPOSITORY}
@@ -82,8 +87,9 @@ class ReleaseCandidateTest(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.receipt_path = Path(self.directory.name) / "receipt.json"
+        self.enterContext(patch.dict(os.environ, {verifier.BINDING_KEY: BINDING}))
         self.receipt = {
-            "schema_version": 1, "repository": verifier.REPOSITORY, "ref": verifier.REF,
+            "schema_version": 2, "registry_binding_sha256": PIN, "repository": verifier.REPOSITORY, "ref": verifier.REF,
             "owner_id": verifier.OWNER_ID, "pr_number": PR, "head_sha": HEAD, "base_sha": BASE,
             "merge_sha": SOURCE, "approved_at": APPROVED, "merged_at": MERGED,
             "configuration_revision": CONFIGURATION, "protection_continuous_through_merge": True,
@@ -129,7 +135,7 @@ class ReleaseCandidateTest(unittest.TestCase):
                 "app": {"id": 15368}, "check_suite": {"id": native["check_suite_id"]},
             }
         for path, revision in (
-            (verifier.WORKFLOW, SOURCE), (verifier.PUBLISH_SCRIPT, SOURCE), (verifier.POLICY, SOURCE),
+            *((path, SOURCE) for path in verifier.SOURCE_FILES),
             (verifier.WORKFLOW, HEAD), (verifier.POLICY, POLICY_REVISION),
         ):
             data = (ROOT / path).read_bytes()
@@ -146,7 +152,8 @@ class ReleaseCandidateTest(unittest.TestCase):
                     "schemaVersion": 2, "mediaType": "application/vnd.oci.image.manifest.v1+json",
                     "layers": [{"digest": verifier.digest(f"{role}-{arch}".encode())}],
                 }).encode()
-                reference = f"ghcr.io/{verifier.REPOSITORY}-{role}@{verifier.digest(manifest)}"
+                manifest_digest = verifier.digest(manifest)
+                reference = REGISTRY.reference(role, manifest_digest)
                 self.manifests[reference] = manifest
                 self.images[reference] = {
                     "os": "linux", "architecture": arch,
@@ -155,10 +162,10 @@ class ReleaseCandidateTest(unittest.TestCase):
                         "private_unused_label": SECRET,
                     }},
                 }
-                images[role] = reference
+                images[role] = manifest_digest
             self.provenance[arch] = {
                 "revision": SOURCE, "architecture": arch, "run_url": f"{WEB}/actions/runs/{RUN_ID}",
-                "run_attempt": str(ATTEMPT), "images": images,
+                "run_attempt": str(ATTEMPT), "registry_binding_sha256": PIN, "images": images,
             }
             self.build_archive(arch)
         self.attempt_reads = {}
@@ -215,7 +222,10 @@ class ReleaseCandidateTest(unittest.TestCase):
         else:
             self.assertEqual(args[:4], ["docker", "buildx", "imagetools", "inspect"])
             reference = args[-1]
+            self.assertTrue(reference.startswith(BINDING + "/slickflow-"))
             if args[4] == "--raw":
+                if reference not in self.manifests:
+                    raise subprocess.CalledProcessError(1, args, stderr=PROVIDER_DIAGNOSTIC)
                 output = self.manifests[reference]
             else:
                 self.assertEqual(args[4:6], ["--format", "{{json .Image}}"])
@@ -223,6 +233,12 @@ class ReleaseCandidateTest(unittest.TestCase):
             if isinstance(output, Exception):
                 raise output
         return subprocess.CompletedProcess(args, 0, stdout=output, stderr=b"")
+
+    def reference(self, arch, role):
+        return REGISTRY.reference(role, self.provenance[arch]["images"][role])
+
+    def no_registry_lookups(self):
+        self.assertFalse(any(call.args[0][0] == "docker" for call in self.command_mock.call_args_list))
 
     def cli(self):
         arguments = [
@@ -240,14 +256,18 @@ class ReleaseCandidateTest(unittest.TestCase):
         self.assertEqual(stdout, "")
         self.assertIn(message, stderr)
         self.assertNotIn(SECRET, stderr)
+        for value in BINDING.split("/"):
+            self.assertNotIn(value, stderr)
 
     def test_verified_candidate_binds_exact_attempt_digest_pairs_and_configuration(self):
         # Buildx versions that append a newline report the same manifest content.
-        reference = self.provenance["arm64"]["images"]["runtime"]
+        reference = self.reference("arm64", "runtime")
         self.manifests[reference] += b"\n"
         status, stdout, stderr = self.cli()
         self.assertEqual((status, stderr), (0, ""))
         record = json.loads(stdout)
+        self.assertEqual(record["schema_version"], 2)
+        self.assertEqual(record["registry_binding_sha256"], PIN)
         self.assertEqual(record["repository"], "skizzay/slickflow")
         self.assertEqual(record["ref"], "refs/heads/main")
         self.assertEqual(record["source_revision"], SOURCE)
@@ -265,6 +285,8 @@ class ReleaseCandidateTest(unittest.TestCase):
         self.assertEqual(self.attempt_reads[NATIVE_PATH], 2)
         self.check_current_protection.assert_called_once()
         self.assertNotIn(SECRET, stdout)
+        for value in BINDING.split("/"):
+            self.assertNotIn(value, stdout)
 
     def test_branch_and_wrong_workflow_run_are_rejected_even_for_integrated_sha(self):
         run = self.github_responses[RUN_PATH]
@@ -279,7 +301,7 @@ class ReleaseCandidateTest(unittest.TestCase):
 
     def test_reviewed_workflow_and_ref_guard_are_required_for_release_proof(self):
         self.github_responses[RUN_PATH]["event"] = "workflow_dispatch"
-        for path in (verifier.WORKFLOW, verifier.PUBLISH_SCRIPT):
+        for path in verifier.SOURCE_FILES:
             with self.subTest(path=path):
                 expected = self.github_responses[f"{API}/contents/{path}?ref={SOURCE}"]
                 original = expected["sha"]
@@ -392,23 +414,54 @@ class ReleaseCandidateTest(unittest.TestCase):
         self.build_archive("amd64", compression=ZIP_BZIP2)
         self.assert_rejected("provenance archive has unexpected contents")
 
-    def test_mixed_image_references_are_rejected(self):
+    def test_registry_configuration_and_receipt_are_independently_bound(self):
+        for binding, message in (
+            ("", "approved Forgejo registry host and namespace"),
+            ("ghcr.io/skizzay", "approved Forgejo registry host and namespace"),
+            ("unapproved.private.invalid/synthetic-namespace", "differs from the approved binding"),
+            ("forgejo.private.invalid/unapproved-namespace", "differs from the approved binding"),
+        ):
+            with self.subTest(binding=binding), patch.dict(os.environ, {verifier.BINDING_KEY: binding}):
+                self.assert_rejected(message)
+        self.receipt["schema_version"] = 1
+        self.enroll_fixture_receipt()
+        self.assert_rejected("does not bind this exact integration")
+        self.command_mock.assert_not_called()
+
+    def test_both_provenance_archives_must_match_binding_before_registry_lookups(self):
+        self.provenance["arm64"]["registry_binding_sha256"] = "sha256:" + "a" * 64
+        self.build_archive("arm64")
+        self.assert_rejected("differs from the approved binding")
+        self.no_registry_lookups()
+
+    def test_registry_references_and_tags_in_provenance_never_route_credentials(self):
+        images = self.provenance["arm64"]["images"].copy()
+        for value in (
+            "ghcr.io/skizzay/slickflow-runtime@" + images["runtime"],
+            self.reference("arm64", "runtime"),
+            "unapproved.private.invalid/package:latest",
+            "latest",
+        ):
+            with self.subTest(value=value):
+                self.provenance["arm64"]["images"] = images | {"runtime": value}
+                self.build_archive("arm64")
+                self.assert_rejected("only immutable Forgejo manifest digests")
+                self.no_registry_lookups()
+
+    def test_mixed_role_and_platform_digests_are_rejected(self):
         provenance = self.provenance["arm64"]
-        runtime = provenance["images"]["runtime"]
-        bad_images = (
-            ("runtime", f"ghcr.io/{verifier.REPOSITORY}-runtime:latest", "immutable GHCR digest"),
-            ("migration", runtime, "expected migration repository"),
-            ("runtime", self.provenance["amd64"]["images"]["runtime"], "platform does not match linux/arm64"),
-        )
         images = provenance["images"].copy()
-        for role, reference, message in bad_images:
-            with self.subTest(role=role, reference=reference):
-                provenance["images"] = images | {role: reference}
+        for role, digest, message in (
+            ("migration", images["runtime"], "different runtime and migration digests"),
+            ("runtime", self.provenance["amd64"]["images"]["runtime"], "platform does not match linux/arm64"),
+        ):
+            with self.subTest(role=role):
+                provenance["images"] = images | {role: digest}
                 self.build_archive("arm64")
                 self.assert_rejected(message)
 
     def test_registry_digest_platform_and_source_mismatch_fail_closed(self):
-        reference = self.provenance["amd64"]["images"]["migration"]
+        reference = self.reference("amd64", "migration")
         image = self.images[reference]
         manifest = self.manifests[reference]
         self.manifests[reference] = b"other bytes"
@@ -424,17 +477,17 @@ class ReleaseCandidateTest(unittest.TestCase):
         self.assert_rejected("source or revision label differs")
 
     def test_unknown_provider_or_registry_results_do_not_leak_raw_diagnostics(self):
-        failure = subprocess.CalledProcessError(1, ["upstream"], stderr=SECRET.encode())
+        failure = subprocess.CalledProcessError(1, ["upstream"], stderr=PROVIDER_DIAGNOSTIC)
         run = self.github_responses[RUN_PATH]
         self.github_responses[RUN_PATH] = failure
         self.assert_rejected("GitHub evidence is unavailable")
         self.github_responses[RUN_PATH] = {"unexpected_secret": SECRET}
         self.assert_rejected("wrong repository")
         self.github_responses[RUN_PATH] = run
-        reference = self.provenance["amd64"]["images"]["runtime"]
+        reference = self.reference("amd64", "runtime")
         manifest = self.manifests[reference]
-        self.manifests[reference] = subprocess.TimeoutExpired(["docker"], 25, stderr=SECRET.encode())
-        self.assert_rejected("GHCR amd64 runtime evidence is unavailable")
+        self.manifests[reference] = subprocess.TimeoutExpired(["docker"], 25, stderr=PROVIDER_DIAGNOSTIC)
+        self.assert_rejected("Forgejo amd64 runtime evidence is unavailable")
         self.manifests[reference] = manifest
         self.check_current_protection.side_effect = failure
         self.assert_rejected("Main protection readback failed")

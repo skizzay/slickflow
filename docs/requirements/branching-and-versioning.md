@@ -64,8 +64,9 @@ below. The initial version is reserved by this policy, not published by it.
 
 Each candidate must record the repository and exact main source commit; trusted
 CI workflow identity, event/ref, successful run and attempt; paired immutable
-runtime/migration digests with their native platforms; and the reviewed deployment
-configuration revision. Both images must share the approved source/build identity.
+runtime/migration manifest digests with their native platforms, the approved
+Forgejo registry binding hash, and the reviewed deployment configuration
+revision. Both images must share the approved source/build identity.
 A mutable tag, successful branch build or commit that later enters main is not
 sufficient. Main protection and reviewed-integration evidence are required by
 #142/#136; missing or inconsistent evidence makes the candidate ineligible.
@@ -84,8 +85,10 @@ publication eligibility under #135. [Main protection](../user-guide/main-branch-
 establishes the integration gates under #142. The
 [release candidate verifier](../user-guide/control-plane-ci.md#verify-a-release-candidate)
 checks the integrated source, current build and immutable artifact pairs under
-#136. Deployment authorization (#138), release publication (#139) and live
-deployment/readback (#140) remain separate work. Broader release-staging and
+#136. [#148](https://github.com/skizzay/slickflow/issues/148) binds those
+images to the approved Forgejo registry. Deployment authorization (#138),
+release publication (#139) and live deployment/readback (#140) remain separate
+work. Broader release-staging and
 hotfix automation below remains proposed.
 
 Choose the release version from the actual reviewed public-API change:

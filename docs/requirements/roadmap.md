@@ -37,8 +37,9 @@ live deletion, schema reset, workflow removal or configuration change.
 
 ### Goal 1 delivery breakdown
 
-The owner authorized nine small stories under #128: delivery/release rules #133,
-workflow-free startup #134, main-only publication #135, main protection #142, release verification #136,
+The owner authorized ten small stories under #128: delivery/release rules #133,
+workflow-free startup #134, main-only publication #135, main protection #142,
+release verification #136, Forgejo registry migration #148,
 live inventory/preservation plan #137, deployment authorization #138, actual main
 release publication #139, and live rollout/empty-registry readback #140. Exact
 acceptance/dependencies remain in those issues and their native parent links.
@@ -46,8 +47,14 @@ acceptance/dependencies remain in those issues and their native parent links.
 CI/check coverage #135 precedes main protection #142; release verification #136
 consumes the agreed protection and reviewed-integration evidence. Main protection
 must be active and verified before release-candidate integration and #139's first
-eligible main release. The actual policy and repository-setting authorization are
-separate from this plan; current protection is not implied by an issue or guide.
+eligible main release. Repository-setting authorization and verified readback
+are separate from this plan.
+
+[#148](https://github.com/skizzay/slickflow/issues/148) moves
+image publication and verification to the existing private Forgejo registry.
+It follows #135 and #136 and precedes deployment authorization (#138) and the
+first main release (#139). Its registry access checks do not authorize live
+rollout (#140).
 
 Reviewed implementation lands through story → epic → main. Then a verified main
 release is published and separately authorized for deployment. Keep the Epic open

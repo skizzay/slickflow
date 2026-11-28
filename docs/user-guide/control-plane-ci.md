@@ -1,7 +1,8 @@
 # Control-plane verification and publication
 
 Native CI builds on [#112](https://github.com/skizzay/slickflow/issues/112),
-with main-only publication under [#135](https://github.com/skizzay/slickflow/issues/135).
+with main-only publication under [#135](https://github.com/skizzay/slickflow/issues/135)
+and the private Forgejo registry cutover under [#148](https://github.com/skizzay/slickflow/issues/148).
 [Packaging](control-plane-packaging.md) owns image contents and local builds;
 [hosting](control-plane-hosting.md) owns deployment inputs and maintenance.
 
@@ -31,19 +32,18 @@ Publication requires a push or manual dispatch in `skizzay/slickflow` on the exa
 A permissionless job makes case-sensitive comparisons of the event context before
 the publication job can start. The publication script independently verifies
 that context and the checked-out SHA before registry login and before any push.
-Each native publication job rebuilds and smoke-tests its actual pair before
-registry login. Only these jobs have `packages: write`. They use the short-lived
-`GITHUB_TOKEN`, never production or personal credentials. No GitHub write or
-package token is supplied to validation jobs. No deployment occurs here.
+Each native publication job targets the `control-plane-publication`
+environment and rebuilds and smoke-tests its actual pair before accessing the
+registry handoff. The workflow uses GitHub read permissions. PR validation has
+no publication environment, Forgejo credential or private access path.
 Reviewed integration and main protection remain separate requirements for
 production release eligibility. See the [release contract](../requirements/branching-and-versioning.md#goal-1-release-contract-133).
 
 ## Artifacts and provenance
 
-Each trusted run publishes these two repositories for both architectures:
-
-- `ghcr.io/skizzay/slickflow-runtime`
-- `ghcr.io/skizzay/slickflow-migration`
+Each trusted run publishes `slickflow-runtime` and `slickflow-migration` in the
+same approved Forgejo namespace for both architectures once the administrator
+enables credential delivery.
 
 Discovery tags are `FULL_COMMIT-amd64` and `FULL_COMMIT-arm64`. Tags can move on
 rerun: only `repository@sha256:DIGEST` references are deployment identities.
@@ -51,13 +51,13 @@ Images carry the full source revision and non-root UID/GID 10001. Pi runtime and
 database-host migrator use different native image digests with the same revision.
 There is no multi-platform manifest/index requirement for these split hosts.
 
-The run summary and `control-plane-provenance-ARCH-ATTEMPT` workflow artifact contain
-`provenance-ARCH.json`: source revision, architecture, runtime/migration registry
-digests, pipeline URL and attempt. Each rerun uses a separate artifact name so it cannot
-collide with or overwrite an earlier attempt. Workflow artifacts are retained for 30 days;
-preserve the approved deployment identities privately beyond that if needed.
-This is a traceability record, not a signed supply-chain attestation. No raw
-application payloads, private network inventory or production logs are uploaded.
+The run summary and `control-plane-provenance-ARCH-ATTEMPT` workflow artifact
+contain `provenance-ARCH.json` with the source revision, architecture, run URL,
+attempt, approved registry binding hash and two role-specific manifest digests.
+Keep the host and namespace in private configuration. GitHub retains distinct
+archives per attempt for 30 days. Preserve the verified evidence independently
+of that retention. The archives provide traceability and carry no signed
+supply-chain attestation.
 
 A failed test prevents publication jobs from starting. A publication failure can
 leave an individual image pushed; it never emits a successful pair record before
@@ -68,12 +68,32 @@ automatic image purge or rollback.
 
 ## Registry access and reruns
 
-GHCR package creation/access must be available to the repository workflow token.
-Initial package visibility can be private; public source does not imply anonymous
-package pulls. Confirm visibility and pull access before staging images. Any
-private registry pull credential belongs in the approved OpenBao process, never
-in the checkout or deployment plan. Do not change package visibility implicitly.
-No new paid runner or service is configured.
+The administrator owns the approved network path, TLS, scoped Forgejo publisher
+and read-only consumer identities, OpenBao custody and credential rotation.
+Confirm private namespace visibility, capacity and retention before enabling
+publication. Restrict the publication environment to reviewed main and require
+owner approval without bypass. The OpenBao delivery and protected environment
+configuration are pending operational verification. Without an approved handoff,
+the publication step fails closed.
+
+The private binding is the exact lowercase DNS host and namespace, separated by
+one slash. `registry_binding_sha256` is the SHA-256 of its UTF-8 bytes without
+a trailing newline, with the `sha256:` prefix. The administrator records the
+approved digest as `SLICKFLOW_REGISTRY_BINDING_SHA256` in protected publication
+configuration. After the native build and smoke checks, the approved delivery
+adapter must create a regular file with mode 0600 owned by the publication
+process user at the absolute `SLICKFLOW_REGISTRY_AUTH_FILE` path. The JSON
+contains `registry`, `registry_binding_sha256`, `username` and `token`.
+Publication checks both hashes against the protected configuration before
+contacting Forgejo. Docker reads the token through standard input and uses a
+temporary client configuration. The publisher removes that temporary configuration
+on success or failure, and the workflow removes the handoff in its always-run
+cleanup step.
+
+New publication targets only the approved Forgejo binding. Preserve historical
+GHCR images, evidence and rollback access, including already deployed images.
+Deletion, copying and retention changes require separate authorization. New
+release selection requires Forgejo evidence on reviewed main.
 
 Use the Actions run page to inspect checks and download both provenance records.
 To repeat a known run without selecting an arbitrary source:
@@ -94,14 +114,17 @@ ineligible even if their commit later enters main.
 [release candidate verifier](../../scripts/verify_release_candidate.py).
 Run it from a trusted, reviewed checkout with Python 3, the GitHub CLI
 authenticated to github.com with repository administration and Actions read
-access, and Docker Buildx with read access to both GHCR packages.
+access, and Docker Buildx with the administrator-approved read-only session for
+both private Forgejo packages. Supply the private binding through operator
+configuration independent of the candidate.
 
 | Input | Value |
 |---|---|
 | `--run-id` | GitHub Actions run ID for an exact-main push or manual dispatch after integration |
 | `--source-revision` | Full lowercase Git SHA of the owner-merged source commit |
 | `--configuration-revision` | Full lowercase Git SHA of the intended deployment configuration recorded by the owner |
-| `--integration-receipt` | Owner-retained JSON receipt for the exact merge, checks and configuration |
+| `--integration-receipt` | Owner-retained version 2 JSON receipt for the exact merge, checks, configuration and registry binding |
+| `SLICKFLOW_REGISTRY` environment variable | Approved private host and namespace binding from operator configuration |
 | `--trusted-receipt-digest` | SHA-256 pin in `sha256:` form independently obtained from the owner |
 
 The verifier reconciles the [owner receipt](main-branch-protection.md#release-integration-receipt)
@@ -109,24 +132,27 @@ with GitHub's repository, merged PR, merge parents, main history, native PR chec
 and live protection. It requires a same-repository PR integrated by the owner
 using a two-parent merge commit. Squash and rebase integrations are outside this
 path. The source checkout must match the verifier's reviewed workflow,
-publication source guard and protection policy. The workflow and guard confirm
-the exact branch ref during publication. GitHub's run API returns the short
-branch name.
+publication code, registry binding implementation and protection policy. The
+workflow and guard confirm the exact branch ref during publication. GitHub's
+run API returns the short branch name.
 
 Both native verify jobs and both native publish jobs must have succeeded in the
 run's current attempt, along with the publication source job. The verifier
 downloads the two provenance archives from GitHub by artifact ID, checks their
 API digests and upload times, and compares their run, attempt, revision and
-platform. It then checks all four image references against
-[the registry](control-plane-packaging.md#release-candidate-images). The verifier
-checks the current main and PR workflow attempts again before emitting the
-record. Rerunning only failed jobs may keep prior-attempt jobs and artifacts.
+platform. It checks the private binding against the pinned owner receipt and
+both provenance archives before resolving all four manifest digests in
+[the registry](control-plane-packaging.md#release-candidate-images). The
+archives supply only digests. The verifier constructs the exact references
+from its own approved binding. It checks the current main and PR workflow
+attempts again before emitting the record. Rerunning only failed jobs may keep
+prior-attempt jobs and artifacts.
 Rerun all jobs for one complete main attempt and verify again. A rerun of the
 PR check workflow requires owner reconciliation of the pinned integration
 evidence.
 
-Success writes a sanitized JSON record to standard output for release and
-[deployment approval](control-plane-hosting.md#release-candidate-evidence). An
+Success writes a version 2 JSON record with the binding hash and manifest
+digests for release and [deployment approval](control-plane-hosting.md#release-candidate-evidence). An
 unknown, expired, missing or inconsistent result exits with a nonzero status and
 a diagnostic on standard error. Check provider read access and availability when
 a read fails, or reconcile mismatches with the owner before retrying. Preserve
@@ -136,11 +162,14 @@ requires an eligible main run following reviewed integration into main.
 
 ## Verification and completion
 
-Local tests exercise the workflow eligibility check, independent publication
-guard, SHA mismatch, partial push failure and digest/provenance creation.
-Actionlint checks the workflow. Observe both native checks on the story PR and
-verify that publication jobs are skipped. Observe first main publication and
-its provenance separately during release verification under Epic #128.
+Local tests exercise main-only eligibility, exact checkout, private credential
+routing, partial pushes, digest-only provenance, rejected registry evidence and
+redacted output. Run Actionlint and observe both native story PR checks with
+publication skipped. Cutover requires an authorized disposable Forgejo
+push, digest inspection and pull through the approved path, plus separate
+runtime and migration consumer pull evidence. The first eligible main
+publication and its provenance are tracked in
+[#139](https://github.com/skizzay/slickflow/issues/139).
 
 Receipt-only ingress configuration (#114) is also checked with
 `./scripts/verify-hosting.sh --webhooks` on each native architecture before

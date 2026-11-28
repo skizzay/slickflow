@@ -35,16 +35,21 @@ acceptance is verified; the deployment pipeline is #113.
 Preserve the JSON from [release candidate verification](control-plane-ci.md#verify-a-release-candidate)
 with the owner-approved release and deployment records. The JSON binds the
 reviewed main source, configuration revision, workflow run and attempt,
-integration evidence and exact native image digests. Use the ARM64 runtime
-digest on the Pi and amd64 migration digest on the database server. Confirm that
-the staged recipe/configuration and approved operation match the recorded
-configuration revision and host preflight checks. Keep local environment
-values, credential paths and private configuration in owner-controlled storage.
+integration evidence, approved registry binding hash and exact native role
+digests. In private configuration, verify the independently approved
+`SLICKFLOW_REGISTRY` binding against the record's `registry_binding_sha256`.
+Resolve the ARM64 runtime digest in the binding's `slickflow-runtime`
+repository and the amd64 migration digest in its `slickflow-migration`
+repository. Set each host's image variable to its full repository-at-digest
+reference. Keep the registry host, namespace and full references in
+owner-controlled storage.
 
 The candidate record supports the separate release and deployment approvals.
-A changed build attempt, image digest or configuration requires renewed
-verification and approval before staging. Resolve uncertain evidence with the
-owner before proceeding with maintenance.
+[Deployment authorization #138](../requirements/control-plane-deployment.md#forgejo-deployment-authorization)
+must bind those exact native references and the verified configuration. A
+changed build attempt, registry binding, image digest or configuration requires
+renewed verification and approval before staging. Resolve uncertain evidence
+with the owner before proceeding with maintenance.
 
 ## Database bootstrap and identities
 
@@ -118,6 +123,12 @@ Select matching immutable native images as described in
 | Pi / `deployment/control-plane/compose.yaml` | ARM64 `SLICKFLOW_RUNTIME_IMAGE`, `SLICKFLOW_RUNTIME_PASSWORD_FILE`, TLS URL/CA and approved CPU budget |
 | Database server / `deployment/control-plane/compose.migration.yaml` | amd64 `SLICKFLOW_MIGRATION_IMAGE`, `SLICKFLOW_MIGRATION_PASSWORD_FILE`, TLS URL/CA and approved CPU/migration-memory budgets |
 
+Use separate administrator-provisioned, OpenBao-managed read-only Forgejo access
+to stage each approved digest on its host. Verify access for each consumer before
+staging a release. Both Compose recipes use an explicit never-pull policy and
+require the staged image to be present. Registry credentials belong to the hosting
+operator and stay outside both containers.
+
 Both image labels must identify the same approved full source commit; compare the
 two preflight outputs across hosts. The Pi requires no migrator image/password and
 the database recipe requires no runtime image/password. Migration uses trusted
@@ -142,18 +153,23 @@ Provide the database CA as a read-only file and an external JDBC URL selecting
 `currentSchema=slickflow`, `sslmode=verify-full` and
 `sslrootcert=/run/trust/postgresql-ca.crt`. Do not embed credentials in the URL.
 The engine schema is fixed to `flowable` in this hosting recipe. Required external
-variables are declared in the Compose file and checked by:
+variables are declared in the Compose file. For preflight also supply the
+private `SLICKFLOW_REGISTRY` binding and the approved release's
+`SLICKFLOW_REGISTRY_BINDING_SHA256` from the operator configuration. Stage
+`scripts/control_plane_registry.py` beside the preflight script and keep
+the recipe paths relative to the checked-out scripts.
 
 ```sh
 ./scripts/check-control-plane-host.sh runtime    # on Pi
 ./scripts/check-control-plane-host.sh migration  # on database server
 ```
 
-Preflight is read-only: it never pulls images, changes kernel settings or starts
-services. It checks only the selected host role: native non-root image, its own private
-secret file, TLS configuration and actual Docker memory-limit support. Runtime
-requires ARM64; migration supports native amd64 or ARM64. Read-only verification confirms Pi memory-limit support is now available;
-preflight still checks it before use. The 512 MiB heap is not whole-container
+Preflight checks the selected host role's exact Forgejo repository and immutable
+digest reference before consulting Docker. It then checks the locally staged
+native non-root image, role-specific secret file, TLS configuration and actual
+Docker memory-limit support. It performs read-only checks without pulling images,
+changing kernel settings or starting services. Runtime requires ARM64; migration
+supports native amd64 or ARM64. Preflight checks Pi memory-limit support before use. The 512 MiB heap is not whole-container
 containment.
 
 After authorized maintenance, operations use the persistent project identity
@@ -179,10 +195,11 @@ wait for final operation status and application health. Do not invoke Compose
 independently or acquire a separate flock.
 
 Registration freezes reviewed candidates without starting services. Deployment
-requires matching immutable native images, exact recipe/config hashes, approved
-resource budgets, the expected previous registration and an operator attestation
-that ingress is closed. The wrapper does not close ingress itself. It supports
-the one-shot migration recipe; standalone JAR execution is not exposed.
+requires matching immutable native images resolved from the approved Forgejo
+binding, exact recipe/config hashes, approved resource budgets, the expected
+previous registration and an operator attestation that ingress is closed. The
+wrapper supports the one-shot migration recipe and requires the operator to
+close ingress separately.
 
 The administrator reports successful contention, disconnect, deadline,
 cancellation and explicit fence recovery probes. Failure retains durable fences
