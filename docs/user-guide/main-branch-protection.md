@@ -63,14 +63,43 @@ production workflow validates PRs to `main` and `epic/*`, so use an approved
 establish readback behavior. Provider attempt outcomes on the disposable branch
 and actual main policy readback are separate pieces of evidence.
 
-Before the release-candidate Epic enters main, capture effective protection and
-reviewed integration evidence. Preserve the policy revision and verification
-time, PR link, exact head and base/merge candidate, native check conclusions and
-run/attempt links, explicit owner approval, and resulting main commit. Repeat
-readback at release verification and reconcile intervening changes. These records
-serve [release verification #136](https://github.com/skizzay/slickflow/issues/136)
-and [publication #139](https://github.com/skizzay/slickflow/issues/139). Evidence
-must show protection already in effect for the candidate's integration.
+## Release integration receipt
+
+Before integration, the owner runs the protection verifier, verifies the exact
+PR head, then-current main base and successful native check attempt, and
+records explicit approval. After the manual merge, the owner reruns the
+protection verifier and retains the GitHub merge commit and time. Reconcile
+any intervening policy changes or emergency exception before supplying evidence
+for a release.
+
+For [release verification](control-plane-ci.md#verify-a-release-candidate), the
+owner retains one small JSON object with these fields:
+
+| Fields | Evidence |
+|---|---|
+| `schema_version`, `repository`, `ref`, `owner_id` | Schema version 1, `skizzay/slickflow`, `refs/heads/main`, and numeric GitHub owner ID |
+| `pr_number`, `head_sha`, `base_sha`, `approved_at` | Numeric PR number, full approved head and base commits, and UTC time of explicit owner approval |
+| `native_run_id`, `native_attempt` | Numeric GitHub PR run ID and current attempt whose native jobs succeeded for the reviewed integration |
+| `policy_revision`, `premerge_protection`, `postmerge_protection` | Full approved policy Git commit and the protection verifier's complete JSON readbacks from before approval and after the merge |
+| `protection_continuous_through_merge` | True when the owner verifies that the policy remained in effect from the pre-merge readback through the manual merge |
+| `merge_sha`, `merged_at`, `configuration_revision` | Full GitHub merge commit, provider merge time in UTC, and full Git revision of the reviewed configuration |
+
+Use ISO 8601 UTC timestamps ending in `Z` or `+00:00` and keep the original
+receipt bytes. The owner provides their SHA-256 digest through an authenticated
+channel independent of the candidate inputs. The verifier operator uses that
+trusted digest from an owner-controlled record. A digest obtained alongside
+candidate-submitted evidence establishes byte integrity only.
+
+Historical protection, explicit approval and the association of the native
+checks with the reviewed base are owner attestations bound by this pin. The
+verifier corroborates the exact merge commit, its parents, the final PR head,
+the merge actor and time, and the GitHub Actions native checks on the exact head.
+GitHub may omit the PR association on an Actions run. A live protection readback
+confirms the current policy, and the pinned pre-merge and post-merge readbacks
+record its state at integration. A previously unrecorded integration requires
+owner reconciliation before release selection. This receipt is separate from
+the [exact release approval](../requirements/branching-and-versioning.md#goal-1-release-contract-133)
+and [publication #139](https://github.com/skizzay/slickflow/issues/139).
 
 ## Emergency restoration
 

@@ -36,7 +36,7 @@ query {
 def github_api(*args):
     result = subprocess.run(
         ["gh", "api", "--hostname", "github.com", *args],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, timeout=25,
     )
     return json.loads(result.stdout)
 
@@ -104,6 +104,9 @@ def main():
         print(json.dumps(verify(), indent=2))
     except subprocess.CalledProcessError as error:
         print(f"GitHub protection readback failed (gh exit {error.returncode}).", file=sys.stderr)
+        return 1
+    except subprocess.TimeoutExpired:
+        print("GitHub protection readback timed out.", file=sys.stderr)
         return 1
     except (OSError, KeyError, TypeError, ValueError) as error:
         print(f"GitHub protection readback failed ({error}).", file=sys.stderr)
