@@ -55,9 +55,9 @@ jobs:
     name: Publish (${{ matrix.arch }})
     needs: [verify, publication-source]
     if: needs.publication-source.outputs.allowed == 'true'
+    environment: control-plane-publication
     permissions:
       contents: read
-      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -88,24 +88,24 @@ jobs:
           ./scripts/verify-packaging.sh
           ./scripts/verify-hosting.sh
           ./scripts/verify-hosting.sh --webhooks
-      - name: Authenticate publication only
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GHCR_ACTOR: ${{ github.actor }}
-        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_ACTOR" --password-stdin
+      # #148: the approved OpenBao delivery step must supply this file after verification.
       - name: Publish verified pair and record digests
         env:
           SLICKFLOW_PUBLISH_ARCH: ${{ matrix.arch }}
+          SLICKFLOW_REGISTRY_BINDING_SHA256: ${{ vars.SLICKFLOW_REGISTRY_BINDING_SHA256 }}
+          SLICKFLOW_REGISTRY_AUTH_FILE: ${{ runner.temp }}/slickflow-forgejo-publication.json
         run: ./scripts/publish-control-plane.sh
+      - name: Remove publication handoff
+        if: always()
+        env:
+          SLICKFLOW_REGISTRY_AUTH_FILE: ${{ runner.temp }}/slickflow-forgejo-publication.json
+        run: rm -f -- "$SLICKFLOW_REGISTRY_AUTH_FILE"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: control-plane-provenance-${{ matrix.arch }}-${{ github.run_attempt }}
           path: provenance-${{ matrix.arch }}.json
           if-no-files-found: error
           retention-days: 30
-      - name: Remove registry session
-        if: always()
-        run: docker logout ghcr.io
 
   publication-source:
     name: Check publication source
